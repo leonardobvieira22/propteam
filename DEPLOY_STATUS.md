@@ -186,9 +186,21 @@ frontend:
       - .next/cache/**/*
 ```
 
+#### 5. **Problema de Dependências - Conflito pnpm/npm**
+
+**Erro**: `Cannot find module 'tailwindcss'` e módulos faltando
+
+**Solução**:
+
+- ✅ Removido `pnpm-lock.yaml` conflitante
+- ✅ Regenerado `package-lock.json` limpo
+- ✅ Adicionado `.nvmrc` com Node.js 18
+- ✅ Melhorado `amplify.yml` com logging detalhado
+- ✅ Adicionado `--include=dev` no npm ci
+
 ### 📊 Status Atual:
 
-- **Commit**: `241a695` - "fix: remove husky dependency to fix AWS Amplify build"
+- **Commit**: `a337ba2` - "fix: resolve dependency installation - remove pnpm-lock conflict"
 - **Branch**: `main`
 - **Deploy**: Pronto para re-deploy no AWS Amplify
 
