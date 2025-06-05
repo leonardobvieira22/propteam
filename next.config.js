@@ -8,9 +8,7 @@ const nextConfig = {
 
   // AWS Amplify optimizations
   output: 'standalone',
-  experimental: {
-    serverComponentsExternalPackages: ['@aws-sdk/client-ssm'],
-  },
+  serverExternalPackages: ['@aws-sdk/client-ssm'],
 
   // Environment variables
   env: {
