@@ -360,14 +360,14 @@ function analyzeYLOSRules(
       violacoes.push({
         codigo: 'CONSISTENCIA',
         titulo: 'Regra de consistência violada',
-        descricao: `Nenhum dia pode representar mais de ${maxDayPercentage}% do lucro total. Seu melhor dia representa ${percentualMelhorDia.toFixed(1)}% ($${maiorLucroDia.toFixed(2)} de $${lucroTotal.toFixed(2)}).`,
+        descricao: `Nenhum dia pode representar mais de ${maxDayPercentage}% do lucro total. Seu melhor dia representa ${percentualMelhorDia.toFixed(2)}% ($${maiorLucroDia.toFixed(2)} de $${lucroTotal.toFixed(2)}).`,
         severidade: 'CRITICAL',
       });
       enterpriseLogger.ylosRuleViolation(
         requestId,
         'CONSISTENCIA',
         'CRITICAL',
-        `Dia representou ${percentualMelhorDia.toFixed(1)}% do lucro total`,
+        `Dia representou ${percentualMelhorDia.toFixed(2)}% do lucro total`,
         context,
       );
     }
@@ -458,66 +458,75 @@ function analyzeYLOSRules(
     );
   }
 
-  // Rule 7: Check for operations during NY market opening (9:30 AM NY time - prohibited for Master Funded)
+  // Rule 7: Check for positions open during NY market opening (9:30 AM NY time - prohibited for Master Funded)
+  // Corrected logic: Check if positions were OPEN during 15 minutes before to 15 minutes after NY opening (9:15-9:45 AM NY)
   if (contaType === 'MASTER_FUNDED') {
-    const nyOpeningOperations = operations.filter((op) => {
+    const nyOpeningViolations = operations.filter((op) => {
       const abertura = parseDate(op.abertura);
       const fechamento = parseDate(op.fechamento);
 
-      // Convert to NY time (assuming the times in CSV are in the timezone specified by user)
-      // 9:30 AM NY = 14:30 UTC (during standard time) or 13:30 UTC (during daylight time)
-      // We'll check for operations between 9:25-9:35 AM NY time to be safe
+      // Check if position was open during the prohibited window
+      // 9:15-9:45 AM NY = approximately 11:15-11:45 AM Brazil (standard time) or 10:15-10:45 AM Brazil (daylight time)
+      // We'll check both windows to be safe
+      const checkPositionOpenDuringWindow = () => {
+        const hour = abertura.getHours();
+        const minute = abertura.getMinutes();
+        const aberturaMinutes = hour * 60 + minute;
 
-      const checkTimeWindow = (date: Date, operationType: string) => {
-        const hour = date.getHours();
-        const minute = date.getMinutes();
-        const timeInMinutes = hour * 60 + minute;
+        const fechamentoHour = fechamento.getHours();
+        const fechamentoMinute = fechamento.getMinutes();
+        const fechamentoMinutes = fechamentoHour * 60 + fechamentoMinute;
 
-        // Convert based on Brazil time (most common for YLOS users)
-        // 9:30 AM NY = 11:30 AM Brazil (during NY standard time) or 10:30 AM Brazil (during NY daylight time)
-        // We'll check for the most restrictive window: 10:25-10:40 AM and 11:25-11:40 AM Brazil time
-        const nyOpeningWindow1 = timeInMinutes >= 625 && timeInMinutes <= 640; // 10:25-10:40 AM
-        const nyOpeningWindow2 = timeInMinutes >= 685 && timeInMinutes <= 700; // 11:25-11:40 AM
+        // NY Opening windows in Brazil time (15 minutes before and after 9:30 AM NY)
+        // 9:15-9:45 AM NY = 11:15-11:45 AM Brazil (standard) or 10:15-10:45 AM Brazil (daylight)
+        const nyWindow1Start = 615; // 10:15 AM Brazil
+        const nyWindow1End = 645;   // 10:45 AM Brazil
+        const nyWindow2Start = 675; // 11:15 AM Brazil  
+        const nyWindow2End = 705;   // 11:45 AM Brazil
 
-        const isInWindow = nyOpeningWindow1 || nyOpeningWindow2;
-        
-        if (isInWindow) {
+        // Check if position was open during any of these windows
+        const overlapWindow1 = 
+          (aberturaMinutes <= nyWindow1End && fechamentoMinutes >= nyWindow1Start);
+        const overlapWindow2 = 
+          (aberturaMinutes <= nyWindow2End && fechamentoMinutes >= nyWindow2Start);
+
+        const hasViolation = overlapWindow1 || overlapWindow2;
+
+        if (hasViolation) {
           enterpriseLogger.debug(
-            `NY Opening window detected`,
+            `NY Opening position overlap detected`,
             { ...context, requestId },
             {
               ativo: op.ativo,
-              operationType,
-              time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
-              timeInMinutes,
-              window1: nyOpeningWindow1,
-              window2: nyOpeningWindow2,
+              abertura: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+              fechamento: `${fechamentoHour.toString().padStart(2, '0')}:${fechamentoMinute.toString().padStart(2, '0')}`,
+              aberturaMinutes,
+              fechamentoMinutes,
+              window1Overlap: overlapWindow1,
+              window2Overlap: overlapWindow2,
             },
           );
         }
 
-        return isInWindow;
+        return hasViolation;
       };
 
-      const aberturaViolation = checkTimeWindow(abertura, 'abertura');
-      const fechamentoViolation = checkTimeWindow(fechamento, 'fechamento');
-      
-      return aberturaViolation || fechamentoViolation;
+      return checkPositionOpenDuringWindow();
     });
 
-    if (nyOpeningOperations.length > 0) {
+    if (nyOpeningViolations.length > 0) {
       violacoes.push({
         codigo: 'ABERTURA_NY',
-        titulo: 'Operações durante abertura NY detectadas',
-        descricao: `Detectadas ${nyOpeningOperations.length} operações durante abertura do mercado NY (9:30 AM). PROIBIDO em Master Funded. Janelas: 10:25-10:40 e 11:25-11:40 (horário Brasil).`,
+        titulo: 'Posições abertas durante abertura NY detectadas',
+        descricao: `Detectadas ${nyOpeningViolations.length} posições que estavam ABERTAS durante a janela proibida de abertura do mercado NY (9:15-9:45 AM NY / 10:15-10:45 ou 11:15-11:45 horário Brasil). PROIBIDO estar posicionado 15 min antes até 15 min depois da abertura NY em Master Funded.`,
         severidade: 'CRITICAL',
-        operacoes_afetadas: nyOpeningOperations,
+        operacoes_afetadas: nyOpeningViolations,
       });
       enterpriseLogger.ylosRuleViolation(
         requestId,
         'ABERTURA_NY',
         'CRITICAL',
-        `${nyOpeningOperations.length} operações durante abertura NY`,
+        `${nyOpeningViolations.length} posições abertas durante abertura NY`,
         context,
       );
     }

@@ -35,6 +35,15 @@ interface FormData {
   saques: number;
 }
 
+interface TradeOperation {
+  ativo: string;
+  abertura: string;
+  fechamento: string;
+  res_operacao: number;
+  lado: string;
+  [key: string]: unknown;
+}
+
 interface AnalysisResult {
   aprovado: boolean;
   total_operacoes: number;
@@ -49,7 +58,7 @@ interface AnalysisResult {
     descricao: string;
     severidade: 'CRITICAL' | 'WARNING' | 'INFO';
     valor_impacto?: number;
-    operacoes_afetadas?: unknown[];
+    operacoes_afetadas?: TradeOperation[];
   }>;
   detalhes_noticias?: unknown[];
   recomendacoes: string[];
@@ -87,12 +96,12 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     });
   };
 
-  const formatOperation = (op: any) => {
+  const formatOperation = (op: TradeOperation) => {
     return {
       ativo: op.ativo || 'N/A',
       abertura: op.abertura || 'N/A',
       fechamento: op.fechamento || 'N/A',
-      resultado: op.res_operacao ? `$${op.res_operacao.toFixed(2)}` : 'N/A',
+      resultado: `$${op.res_operacao.toFixed(2)}`,
       lado: op.lado || 'N/A'
     };
   };
@@ -466,7 +475,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     // Regra de Consistência oficial: % do melhor dia vs lucro total
     const bestDayPercentage =
       analysisResult.lucro_total > 0
-        ? (analysisResult.maior_lucro_dia / analysisResult.lucro_total) * 100
+        ? Math.round(((analysisResult.maior_lucro_dia / analysisResult.lucro_total) * 100) * 100) / 100
         : 0;
 
     // Taxa de sucesso baseada em dias vencedores com valor mínimo oficial
@@ -517,7 +526,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         title: 'Regra de Consistência',
         description: `Nenhum dia pode exceder ${maxDayPercentage}% do lucro total`,
         current: bestDayPercentage,
-        required: maxDayPercentage,
+        required: `≤ ${maxDayPercentage}%`,
         status: bestDayPercentage <= maxDayPercentage ? 'approved' : 'rejected',
         icon: TrendingUp,
         severity:
@@ -528,7 +537,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         title: 'Limite Diário (Regra Consistência)',
         description: `Máx. $${dailyProfitLimit.toFixed(0)} por dia (meta colchão $${withdrawalThreshold.toFixed(0)} x ${consistencyDecimal * 100}%)`,
         current: `$${analysisResult.maior_lucro_dia.toFixed(2)}`,
-        required: `$${dailyProfitLimit.toFixed(2)}`,
+        required: `≤ $${dailyProfitLimit.toFixed(2)}`,
         status:
           analysisResult.maior_lucro_dia <= dailyProfitLimit
             ? 'approved'
@@ -583,8 +592,8 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         title: 'Abertura Mercado NY',
         description:
           formData.contaType === 'MASTER_FUNDED'
-            ? 'PROIBIDO operar durante abertura NY (9:30 AM)'
-            : 'Verificação de operações durante abertura NY',
+            ? 'PROIBIDO estar posicionado 15 min antes até 15 min depois da abertura NY (9:15-9:45 AM NY)'
+            : 'Verificação de posições durante abertura NY',
         current: violacoes.some((v) => v.codigo === 'ABERTURA_NY')
           ? 'Detectadas'
           : 'Nenhuma',
@@ -855,7 +864,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                 minimumFractionDigits:
                                   rule.code === 'LIMITE_DIARIO' ? 2 : 0,
                               })
-                            : `${rule.current}${rule.code === 'CONSISTENCIA' ? '%' : ''}`
+                            : `${rule.code === 'CONSISTENCIA' ? (typeof rule.current === 'number' ? rule.current.toFixed(2) : rule.current) : rule.current}${rule.code === 'CONSISTENCIA' ? '%' : ''}`
                           : rule.current}
                       </span>
                     </div>
@@ -933,7 +942,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                       </h5>
                       <div className='max-h-60 overflow-y-auto'>
                         <div className='space-y-2'>
-                          {violacao.operacoes_afetadas.map((op: any, opIndex: number) => {
+                          {violacao.operacoes_afetadas.map((op: TradeOperation, opIndex: number) => {
                             const formattedOp = formatOperation(op);
                             return (
                               <div
@@ -956,7 +965,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                   <div>
                                     <span className='font-medium text-gray-600'>Resultado:</span>
                                     <div className={`font-medium ${
-                                      op.res_operacao >= 0 ? 'text-green-600' : 'text-red-600'
+                                      (typeof op.res_operacao === 'number' && op.res_operacao >= 0) ? 'text-green-600' : 'text-red-600'
                                     }`}>
                                       {formattedOp.resultado}
                                     </div>
@@ -1023,7 +1032,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                       </h5>
                       <div className='max-h-60 overflow-y-auto'>
                         <div className='space-y-2'>
-                          {violacao.operacoes_afetadas.map((op: any, opIndex: number) => {
+                          {violacao.operacoes_afetadas.map((op: TradeOperation, opIndex: number) => {
                             const formattedOp = formatOperation(op);
                             return (
                               <div
