@@ -54,7 +54,7 @@
     @apply border-0;
   }
   body {
-    @apply bg-white text-gray-900 font-sans;
+    @apply bg-white font-sans text-gray-900;
   }
 }
 
@@ -63,28 +63,28 @@
   .card {
     @apply rounded-lg border border-gray-200 bg-white text-gray-900 shadow-sm;
   }
-  
+
   /* Button variants */
   .btn-primary {
     @apply inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
-  
+
   .btn-secondary {
     @apply inline-flex items-center justify-center rounded-md border border-gray-300 bg-gray-100 px-4 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
-  
+
   .btn-ghost {
     @apply inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
 
   /* Form input */
   .input {
-    @apply flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   /* Select input */
   .select {
-    @apply flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   /* Checkbox */
@@ -94,7 +94,7 @@
 
   /* Badge */
   .badge {
-    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+    @apply focus:ring-ring inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
   }
 
   .badge-success {
@@ -115,24 +115,24 @@
 
   /* Status indicators */
   .status-approved {
-    @apply text-green-600 bg-green-50 border-green-200;
+    @apply border-green-200 bg-green-50 text-green-600;
   }
 
   .status-rejected {
-    @apply text-red-600 bg-red-50 border-red-200;
+    @apply border-red-200 bg-red-50 text-red-600;
   }
 
   .status-warning {
-    @apply text-yellow-600 bg-yellow-50 border-yellow-200;
+    @apply border-yellow-200 bg-yellow-50 text-yellow-600;
   }
 
   .status-info {
-    @apply text-blue-600 bg-blue-50 border-blue-200;
+    @apply border-blue-200 bg-blue-50 text-blue-600;
   }
 
   /* File upload area */
   .file-upload-area {
-    @apply border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer bg-gray-50 hover:bg-gray-100;
+    @apply cursor-pointer rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center transition-colors hover:border-gray-400 hover:bg-gray-100;
   }
 
   .file-upload-area.dragover {
@@ -141,11 +141,11 @@
 
   /* Progress bar */
   .progress-bar {
-    @apply w-full bg-gray-200 rounded-full h-2.5;
+    @apply h-2.5 w-full rounded-full bg-gray-200;
   }
 
   .progress-fill {
-    @apply bg-blue-600 h-2.5 rounded-full transition-all duration-300;
+    @apply h-2.5 rounded-full bg-blue-600 transition-all duration-300;
   }
 
   /* Loading spinner */
@@ -155,12 +155,12 @@
 
   /* Tooltip */
   .tooltip {
-    @apply absolute z-10 px-3 py-2 text-sm font-medium text-white bg-gray-900 rounded-lg shadow-sm opacity-0 transition-opacity duration-300;
+    @apply absolute z-10 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300;
   }
 
   /* Analysis result cards */
   .result-card {
-    @apply bg-white rounded-lg border border-gray-200 shadow-sm p-6 space-y-4;
+    @apply space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm;
   }
 
   .result-card-header {
@@ -177,7 +177,7 @@
 
   /* Violation cards */
   .violation-card {
-    @apply border-l-4 p-4 rounded-r-lg;
+    @apply rounded-r-lg border-l-4 p-4;
   }
 
   .violation-critical {
@@ -215,16 +215,20 @@
 
 /* Animation utilities */
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-up {
-  from { 
+  from {
     opacity: 0;
     transform: translateY(20px);
   }
-  to { 
+  to {
     opacity: 1;
     transform: translateY(0);
   }
@@ -243,18 +247,18 @@
   .no-print {
     display: none !important;
   }
-  
+
   .print-only {
     display: block !important;
   }
-  
+
   body {
     background: white !important;
     color: black !important;
   }
-  
+
   .card {
     box-shadow: none !important;
     border: 1px solid #e5e7eb !important;
   }
-} 
+}

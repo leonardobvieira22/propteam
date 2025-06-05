@@ -1,42 +1,32 @@
-vamos criar um sistema que servirá para traders saberem se seus saques serão ou nao autorizados de acordo com as regras das mesas propietarias, irei enviar as regras da primeira mesa que iremos integrar [YLOS TRADING] 
+vamos criar um sistema que servirá para traders saberem se seus saques serão ou nao autorizados de acordo com as regras das mesas propietarias, irei enviar as regras da primeira mesa que iremos integrar [YLOS TRADING]
 para que voce crie o codigo python completo que ira rodar no backend
 utilize nosso diretorio como base para o front end [estilos]
 a ideia é trabalhar com diversas mesas, porem vamos iniciar com a YLOS.
 o sistema precisa ser maleavel, cada codigo python sera treinado de acordo com as regras de cada mesa
-como ideia pro front end, pensei em uma interface amigavel aonde o usuario primeiro seleciona a mesa 
+como ideia pro front end, pensei em uma interface amigavel aonde o usuario primeiro seleciona a mesa
 insere o relatorio csv que sera analisado pelo codigo python
-responde algumas perguntas basicas como: 
+responde algumas perguntas basicas como:
 Perguntas Necessárias para Análise do Relatório CSV - Ylos Trading
 
 1. Qual é o tipo da sua conta? (Digite o número correspondente)
    [1] Conta Master Funded
    [2] Conta Instant Funding
-   Resposta: _
+   Resposta: \_
 
 2. Qual é o seu saldo atual (em USD)?
    Exemplo: 51616.20
-   Resposta: _
+   Resposta: \_
 
 3. Qual é o fuso horário das operações no relatório CSV?
    Exemplo: -03 (BRT), -04 (NY com DST), -05 (NY sem DST)
-   Resposta: _
+   Resposta: \_
 
 4. Você deseja verificar a conformidade com eventos noticiosos? (S/N)
    Se sim, saiba que a ylos nao define exatamente quais sao as noticias que você pode ou nao estar posicionado [vericaremos quais operaçoes voce estava posicionado durante as noticias, porem esse a YLOS TRADING não especifica explicitamente quais noticias ou não voce pode estar posicionado]
 
 5. Quantos saques você já realizou nesta conta?
    Exemplo: 0, 1, 2, 3, 4 ou mais
-   Resposta: _
-
-
-
-
-
-
-
-
-
-
+   Resposta: \_
 
 (regras ylos trading)
 
@@ -53,9 +43,8 @@ Seta
 
 O Instant Funding é um produto da Ylos Trading que proporciona acesso imediato a uma Conta Funded, sem a necessidade de passar por uma fase de avaliação, como a Conta Challenge. Com o Instant Funding, você começa a negociar diretamente com capital financiado pela Ylos, sujeito às regras da Conta Funded, com algumas modificações exclusivas que oferecem maior flexibilidade para saques.
 
-
 1. Qual é o diferencial do Instant Funding em relação à Conta Funded tradicional?
-O diferencial do Instant Funding é que ele elimina a necessidade de uma fase de teste (como a Conta Challenge), permitindo que você inicie imediatamente as operações em uma Conta Funded. Além disso, possui regras ajustadas para facilitar os saques, incluindo:
+   O diferencial do Instant Funding é que ele elimina a necessidade de uma fase de teste (como a Conta Challenge), permitindo que você inicie imediatamente as operações em uma Conta Funded. Além disso, possui regras ajustadas para facilitar os saques, incluindo:
 
 - Redução do mínimo de dias operados de 10 para 5.
 
@@ -66,7 +55,6 @@ O diferencial do Instant Funding é que ele elimina a necessidade de uma fase de
 - Redução da regra de consistência de 40% para 30%, permitindo que um único dia represente até 30% do lucro total da conta.
 
 Essas alterações tornam o Instant Funding uma opção mais acessível para traders experientes que desejam negociar com capital financiado sem passar por um processo de avaliação.
-
 
 2. Quais são as regras do Instant Funding?
 
@@ -83,15 +71,14 @@ As regras do Instant Funding são as mesmas da Conta Master Funded tradicional, 
 
 Outras regras, como limite de 20 contas por usuário, regras de risco versus retorno, proibição de hedging, flipping e "all-in", permanecem iguais às da Conta Master Funded. Consulte as regras completas no site oficial da Ylos Trading (ylostrading.com).
 
-
 3. Quanto custa o Instant Funding?
 
 O custo do Instant Funding varia de acordo com o tamanho da conta escolhida (25K, 50K, 100K, 150K, 250K ou 300K). Consulte a tabela de preços no site oficial da Ylos Trading (ylostrading.com) para os valores atualizados.
 
-
 4. Quais são os requisitos para solicitar um saque no Instant Funding?
 
 Para solicitar um saque no Instant Funding, você deve atender aos seguintes critérios:
+
 - Operar por pelo menos 5 dias, com pelo menos 5 dias vencedores, com cada dia vencedor gerando um lucro líquido de pelo menos $200,00.
 - Manter o saldo da conta acima do valor do drawdown mais $100,00 (por exemplo, $52,600 para uma conta de 50K).
 - Garantir que nenhum dia represente mais de 30% do lucro total da conta, conforme a regra de consistência.
@@ -154,45 +141,45 @@ Seta
 1. O que é o Replicador de Ordens?
 
 O Replicador de Ordens é uma ferramenta da Nelogica que permite replicar suas operações de uma conta principal para outras contas automaticamente e em tempo real. Com ele, você gerencia várias contas de forma simples e eficiente.
- 
+
 2. Como funciona o Replicador na Ylos?
 
 Você opera na sua conta principal dentro do BlackArrow, a plataforma da Nelogica integrada à Ylos, e as ordens são replicadas instantaneamente para as contas seguidoras que você configurar no novo painel. Basta vincular as contas e começar!
- 
+
 3. Preciso ter várias contas para usar o Replicador?
 
 Sim, o Replicador é ideal para quem tem mais de uma conta ativa no novo painel. Ele replica suas ordens da conta principal para as demais que você vincular.
- 
+
 4. Quais são os planos disponíveis na Ylos?
 
 Oferecemos três opções:
- 
+
 One: USD 25/mês (até 2 contas seguidoras).
 Plus: USD 59/mês (até 5 contas seguidoras).
 Pro: USD 109/mês (até 10 contas seguidoras).
- 
+
 Escolha o que melhor se adapta às suas necessidades!
- 
+
 5. O Replicador funciona fora do novo painel da Ylos?
 
 Não, atualmente ele opera exclusivamente no novo painel da Ylos Trading, garantindo integração total e mais agilidade.
- 
+
 6. É necessário manter várias plataformas abertas?
 
 Não! Após configurar o Replicador no novo painel, ele funciona sozinho no BlackArrow, sem precisar de outras instâncias abertas.
- 
+
 7. Como ativo o Replicador na minha conta?
 
 Acesse o novo painel da Ylos a partir de 14 de março de 2025, às 13h, selecione o módulo Replicador de Ordens e siga as instruções para vincular suas contas. Simples e rápido!
- 
+
 8. Posso contratar o Replicador diretamente com a Nelogica?
 
 Não, o Replicador deve ser contratado exclusivamente pelo painel da Ylos Trading. Apenas essa versão é aceita pela nossa mesa. Qualquer outra forma de automação é expressamente proibida e pode resultar em penalidades.
- 
+
 9. Posso usar o Replicador tanto na conta Challenge quanto na conta Funded?
 
 Sim, o Replicador pode ser usado tanto em contas Challenge quanto em contas Funded, desde que estejam vinculadas no novo painel da Ylos e operadas pelo BlackArrow.
- 
+
 10. O que faço se tiver problemas com o Replicador?
 
 Entre em contato com nosso suporte pelo chat no painel da Ylos ou envie sua dúvida para a equipe. Estamos aqui para ajudar!
@@ -263,7 +250,7 @@ Quantidade de Contas: É permitido um máximo de 20 contas por usuário.
 Posicionamento Durante Notícias: Não é permitido estar posicionado durante a divulgação de notícias, mas o trader pode operar após o anúncio, respeitando outras regras de risco.
 Limite de Estratégia "Médio para Trás": É permitido fazer até 3 médios para trás por operação, independentemente de saídas parciais.
 Drawdown: O drawdown é do tipo trailing, ajustado em tempo real, até que você atinja um lucro equivalente ao valor do drawdown mais US$ 100. A partir desse ponto, o drawdown se torna estático.
-·         Corretagem: Na conta Master, há a cobrança de corretagem sobre as operações realizadas.
+· Corretagem: Na conta Master, há a cobrança de corretagem sobre as operações realizadas.
 
 Observação Importante: A conta Master exige uma abordagem profissional de trading, com regras mais rigorosas para assegurar a sustentabilidade e a integridade das operações.
 
@@ -352,8 +339,6 @@ $340,00
 
 Valores em dólares USD
 
- 
-
 Tabela com Desconto de 80% para Conta Desafio:
 
 Tamanho da conta
@@ -406,7 +391,6 @@ Promoções e Descontos: A Ylos Trading pode oferecer cupons de desconto ou prom
 Conta Desafio vs. Conta Master: A Conta Desafio é a fase de avaliação onde você demonstra suas habilidades de trading. Após passar pela avaliação, há uma taxa adicional para habilitar a Conta Master, que é a conta onde você pode operar com capital financiado pela Ylos e solicitar saques.
 Formas de Pagamento: A compra das contas pode ser feita usando cartões de crédito com função internacional ou cartões de débito com saldo em dólar para residentes fora dos EUA; para residentes americanos, tanto cartão de crédito quanto de débito são aceitos.
 Renovação: Se você não passar no período de 30 dias da Conta Desafio, a renovação para tentar novamente custará o mesmo preço pago inicialmente pela conta, incluindo qualquer desconto aplicado na compra original.
- 
 
 Nota: Os preços e promoções podem variar; sempre verifique no site oficial da Ylos Trading ou entre em contato com o suporte para as informações mais atualizadas sobre taxas e descontos.
 
@@ -580,8 +564,6 @@ Seta
 
 Na Ylos Trading, a consistência é um componente central para o sucesso e a sustentabilidade das operações de trading, especialmente para contas Master. Aqui estão as principais regras de consistência que os traders devem seguir:
 
- 
-
 Mínimo de Dias Operados:
 Os traders devem operar por pelo menos 10. Isso garante que o trader está ativamente envolvido no mercado e não está apenas esperando por movimentos favoráveis específicos.
 Mínimo de Dias Vencedores:
@@ -618,17 +600,13 @@ Portanto, na Ylos Trading, o drawdown é mais do que uma simples medida de risco
 Como Funciona o Drawdown na Ylos Trading?
 Seta
 
-1) Contas Desafio:
+1. Contas Desafio:
 
 O drawdown é calculado ao final do dia (EOD - End of Day). Ele é ajustado apenas no fechamento diário, evitando que oscilações intradiárias impactem negativamente a conta. Não há ajuste de drawdown durante o dia ou durante operações, sendo efetuado exclusivamente ao final do dia.
 
- 
-
-2) Master Funded Accounts:
+2. Master Funded Accounts:
 
 O drawdown é do tipo trailing, ajustado em tempo real, até que você atinja um lucro equivalente ao valor do drawdown mais US$ 100. A partir desse ponto, o drawdown se torna estático.
-
- 
 
 Exemplo para uma conta de US$ 50.000:
 
@@ -636,7 +614,6 @@ O drawdown é de US$ 2.500, estabelecendo o limite de perda em US$ 47.500.
 Se você lucrar US$ 500, seu saldo passará a ser US$ 50.500.
 Seu drawdown continua em US$ 2.500.
 Seu novo limite de perda será de US$ 48.000.
- 
 
 Uma vez ajustado, o limite de perda não retorna ao valor anterior. Quando os lucros acumulados alcançarem US$ 2.600, o drawdown se torna estático e o limite de perda será fixado em US$ 50.100.
 
@@ -644,8 +621,6 @@ O que é a regra de consistência de 40%?
 Seta
 
 A Regra de Consistência de 40%, ou "Regra dos 40%", determina que, ao solicitar um saque, não mais do que 40% do saldo de lucro na conta Master pode vir de um único dia de negociação. Esta regra é válida desde o primeiro dia de operações até o pedido do saque. Aqui estão alguns pontos importantes:
-
- 
 
 Período de Aplicação: Esta regra se aplica desde o primeiro dia que você começa a negociar na sua conta Master até o momento em que você solicita o saque.
 Reset da Regra: Após você solicitar um saque, a regra dos 40% é resetada. Isso significa que o cálculo começa novamente a partir do dia do pedido de saque para determinar se o próximo saque cumpre ou não com a regra. Dessa forma, cada pedido de saque marca o início de um novo período de avaliação para a aplicação da regra.
@@ -703,7 +678,6 @@ Seta
 
 P/L Drawdown refere-se à regra de Proteção de Lucro e Limitação de Perdas que os traders da Ylos Trading devem seguir em suas contas Master. Esta regra é projetada para assegurar que um único trade não comprometa significativamente os lucros acumulados na conta, promovendo uma gestão de risco disciplinada e sustentável. Aqui está uma explicação detalhada:
 
-
 Definição: O P/L Drawdown estipula que um único trade não pode resultar em uma perda que exceda 50% do lucro acumulado na conta.
 Aplicação:
 Colchão: A regra só é aplicada após você ter formado um "colchão" de segurança, que é um buffer de lucro que você acumulou na conta. Este colchão serve como uma reserva de lucro que protege sua conta de quedas abruptas no capital devido a uma operação mal-sucedida.
@@ -712,7 +686,6 @@ Gestão de Risco: A regra do P/L Drawdown ajuda a evitar que os traders assumam 
 Sustentabilidade: Incentiva práticas de trading que visem crescimento consistente e longo prazo, em vez de tentar ganhos rápidos que possam colocar em risco o capital acumulado.
 Exemplo Prático:
 Suponha que você tenha uma conta Master com um saldo inicial de $50.000 e acumulou $5.000 em lucro. Como o valor acumulado é maior do que o seu colchão de segurança, a regra é aplicada. A regra do P/L Drawdown significa que você não pode perder mais do que $2.500 (50% de $5.000) em uma única operação.
- 
 
 Esta regra é fundamental para manter a integridade financeira da conta e para garantir que os traders operam com uma perspectiva de gestão de risco eficiente.
 
@@ -744,7 +717,6 @@ Disciplina: A regra do DCA promove a disciplina, ensinando traders a não se dei
 Exemplo Prático:
 
 Suponha que você comprou 1 contrato do Mini S&P500 a 4.500 pontos. O preço caiu para 4.450 pontos, e você compra outro contrato (1º médio para trás). O preço cai mais para 4.400 pontos, você compra um terceiro contrato (2º médio para trás). Se o preço cair para 4.350 pontos, você pode comprar um último contrato (3º médio para trás), mas não pode comprar mais além disso na mesma operação.
- 
 
 A regra DCA é uma importante ferramenta de gestão de risco para evitar que os traders aumentem excessivamente sua exposição ao mercado em busca de recuperar perdas.
 
@@ -763,19 +735,16 @@ Relação de Risco: A regra diz que a quantidade máxima de perda aceitável (o 
 Objetivo:
 
 Gestão de Risco: A regra promove uma gestão de risco mais prudente, incentivando os traders a manterem um equilíbrio saudável entre o risco e o potencial de retorno. Isso ajuda a evitar cenários onde um único trade mal-sucedido poderia anular vários trades vencedores.
- 
 
 Aplicação Prática:
 
 Definição de Stop-Loss: Ao entrar em uma operação, determine seu ponto de stop-loss (ponto onde você sairá da operação com uma perda) de maneira que a perda potencial não exceda 5 vezes a mediana de seus ganhos. Se você tem uma mediana de lucro de $100, seu stop-loss não deve permitir uma perda maior que $500 em uma operação.
 Planejamento de Trade: Antes de cada operação, avalie se ela está dentro desta regra de risco. Isso pode influenciar a quantidade de contratos ou ações que você decide operar, bem como o posicionamento do stop-loss.
- 
 
 Considerações:
 
 Ajuste Dinâmico: A mediana dos seus ganhos pode mudar ao longo do tempo, portanto, esta regra exige uma revisão contínua de suas operações passadas para manter uma gestão de risco eficaz.
 Estratégia: A regra encoraja a criação de estratégias de trading que não apenas busquem altos retornos mas também considerem a possibilidade de perdas, mantendo-as dentro de limites seguros.
- 
 
 Essa regra é fundamental para a sustentabilidade das operações de trading, promovendo uma abordagem onde o risco é constantemente avaliado em função do retorno esperado, ajudando a preservar o capital e a acumular lucros consistentes ao longo do tempo.
 
@@ -794,13 +763,11 @@ Objetivos:
 
 Consistência: A regra visa promover uma prática de trading consistente e disciplinada, onde as decisões de tamanho de posição são baseadas em análise, gestão de risco e estratégia, e não em apostas de alto risco em busca de ganhos rápidos.
 Gestão de Risco: Incentiva os traders a manter um equilíbrio entre risco e recompensa, evitando a exposição excessiva ao mercado que poderia resultar em perdas significativas.
- 
 
 Consequências da Violação:
 
 Avaliação: Se a Ylos Trading notar um padrão de comportamento onde o uso do limite máximo de contratos não se alinha com a estratégia normal do trader, isso pode ser avaliado como gambling.
 Sanções: Isso pode levar a uma revisão da conta, podendo resultar em advertências, suspensão de saques ou, em casos extremos, cancelamento da conta Master, dependendo da gravidade e da frequência da violação.
- 
 
 Resumo: A regra de gambling na Ylos Trading não é sobre o número de contratos operados per se, mas sobre como e quando esses contratos são utilizados. Deve haver uma coerência entre o tamanho das posições tomadas e a estratégia de trading habitual do trader, evitando o uso do limite máximo de contratos apenas em momentos de oportunidade percebida para ganhos rápidos.
 
@@ -808,8 +775,6 @@ Explicação da Regra de Consistência no Uso de Contratos na Ylos Trading
 Seta
 
 A Regra de Consistência no Uso de Contratos na Ylos Trading é uma diretriz que visa garantir que os traders operem de forma uniforme e estratégica ao longo do tempo, evitando comportamentos de trading que possam ser considerados manipulativos ou excessivamente especulativos. Aqui está uma explicação detalhada:
-
- 
 
 Definição:
 
@@ -819,7 +784,6 @@ Aspectos da Regra:
 Adaptação ao Mercado: Os traders podem ajustar o número de contratos que operam de acordo com as condições de mercado, estratégias de risco e gestão de capital. Isso pode incluir aumentar ou diminuir o tamanho das posições com base em análises técnicas, fundamentais, ou mudanças na volatilidade do mercado.
 Proibição de "All In": É proibido usar o máximo de contratos permitidos pela conta de maneira inconsistente com o padrão de operações normais do trader, especialmente na tentativa de obter ganhos rápidos em momentos de alta volatilidade, como foi explicado na regra de gambling.
 Contagem de Dias Operados: Ajustar o número de contratos apenas para garantir que um dia seja contado como operado (para cumprir requisitos de atividade ou saque) é proibido. Isso significa que a operação deve ser genuína e parte da estratégia de trading, não uma manobra para atender a regras de desempenho ou atividade.
- 
 
 Objetivos:
 
@@ -831,34 +795,26 @@ Seta
 
 A Regra de Hedging na Ylos Trading é estabelecida para garantir que os traders não utilizem táticas que possam manipular ou distorcer a verdadeira performance de trading. Aqui está uma explicação detalhada:
 
- 
-
 Definição:
 
 Hedging: No contexto de trading, hedging é a prática de abrir posições em sentidos opostos para mitigar riscos. No entanto, na Ylos Trading, a regra de hedging tem uma conotação específica:
- 
-
- 
 
 Regra:
 
 Proibição de Hedging: É proibido operar posições contrárias em contas diferentes simultaneamente. Isso significa que você não pode, por exemplo, ter uma posição comprada em uma conta e uma venda no mesmo ativo em outra conta ao mesmo tempo.
 Hedging em Ativos Similares: Também é considerado hedging o uso de posições contrárias em ativos similares, como comprar um ativo em uma conta enquanto vende um ativo correlacionado em outra conta, com o objetivo de reduzir ou eliminar o risco de mercado.
 Proibição de Flipping: Também está proibido operar de forma diferente apenas para contar um dia como operado. Isso inclui abrir e fechar posições rapidamente ou de maneira que não reflete a estratégia normal e disciplinada do trader, apenas para cumprir requisitos de atividade ou saque.
- 
 
 Objetivos:
 
 Integridade do Trading: A regra visa manter a integridade das operações de trading, garantindo que as posições abertas reflitam verdadeiramente a estratégia de mercado do trader e não sejam usadas para manipular resultados ou para atender a critérios de desempenho de maneira artificial.
 Consistência: Promove uma abordagem consistente ao trading, onde cada operação é parte de uma estratégia coerente e não de tentativas de manipulação ou hedging para reduzir artificialmente o risco ou inflar a performance.
 Transparência: Evita práticas que poderiam mascarar a verdadeira exposição ao mercado, garantindo que os resultados de trading reflitam a habilidade e a estratégia do trader.
- 
 
 Aplicação Prática:
 
 Estratégia Genuína: Cada operação deve ser parte de uma estratégia de trading bem definida. Se um trader deseja proteger seu portfólio, isso deve ser feito de maneira consistente e transparente dentro de uma única conta, sem recorrer a múltiplas contas para posições contrárias ou em ativos similares.
 Monitoramento: A Ylos Trading monitora as atividades para detectar padrões de hedging ou flipping. Se tais práticas forem identificadas, a empresa pode tomar medidas.
- 
 
 Consequências da Violação:
 
@@ -866,14 +822,13 @@ Revisão e Ação: Se um trader for pego violando a regra de hedging, pode haver
 Advertências ou suspensão temporária da conta.
 Cancelamento da Conta Master, especialmente se o comportamento for repetitivo ou intencional.
 Perda de saques ou anulação de lucros obtidos através de práticas proibidas.
- 
 
 Resumo: A regra de hedging na Ylos Trading não impede o uso de estratégias de proteção de risco dentro de uma única conta, mas proíbe o uso de múltiplas contas para abrir posições contrárias simultaneamente ou operar de maneira inconsistente apenas para manipular critérios de performance ou atividade de trading. Isso inclui o uso de ativos similares para criar uma posição hedged entre contas diferentes. Essa regra encoraja um ambiente de trading onde a habilidade e a estratégia do trader são os determinantes do sucesso, não a manipulação do sistema.
 
 O que é Flipping?
 Seta
 
-Flipping é definido como a prática de realizar uma negociação apenas para que possa ser contada como um "dia de negociação" para cumprir os requisitos de pagamento, sem que essa negociação esteja alinhada com a estratégia diária normal, disciplinada e consistente do trader. Em outras palavras, é fazer uma operação de compra e venda  de um ativo sem a intenção genuína de seguir uma estratégia de trading, mas sim apenas para registrar um dia de trading ativo.
+Flipping é definido como a prática de realizar uma negociação apenas para que possa ser contada como um "dia de negociação" para cumprir os requisitos de pagamento, sem que essa negociação esteja alinhada com a estratégia diária normal, disciplinada e consistente do trader. Em outras palavras, é fazer uma operação de compra e venda de um ativo sem a intenção genuína de seguir uma estratégia de trading, mas sim apenas para registrar um dia de trading ativo.
 
 Essa prática pode ser questionada pela Ylos, que pode exigir que o trader forneça provas mostrando as regras exatas usadas para a entrada da negociação em questão, bem como evidências de entradas de dias anteriores que sigam as mesmas regras do plano de trade, para demonstrar que a operação não foi um "flip", mas sim parte da estratégia normal e consistente de trading.
 
@@ -896,7 +851,6 @@ Para operações na Ylos Trading, as taxas de corretagem são as seguintes:
 
 Micro Contrato: A taxa é de US$0,52 por cada micro contrato negociado.
 Mini Contrato: A taxa é de US$1,55 por cada mini contrato negociado.
- 
 
 Explicação:
 
@@ -945,7 +899,6 @@ A conta não fica bloqueada durante o processo de saque; entretanto, o valor sol
 Se a conta for quebrada (atingir o drawdown máximo) entre o pedido e o pagamento do saque, o pedido de saque será cancelado.
 Saques do Colchão:
 Nos primeiros 4 saques, você pode sacar até 50% do colchão. Após esses 4 saques, você pode sacar sem limite de teto, mas não pode mais sacar do colchão. O restante do colchão só pode ser sacado ao ser promovido para uma conta Broker.
- 
 
 Janelas de Saque:
 Não há mais "janelas de saque"; basta seguir as regras de operação e saque para que seu pedido seja liberado.
@@ -953,8 +906,6 @@ Quando posso solicitar um saque na Ylos Trading?
 Seta
 
 Para solicitar um saque na Ylos Trading, você deve cumprir uma série de critérios específicos associados à sua conta Master. Aqui estão os detalhes sobre quando e como você pode solicitar um saque:
-
- 
 
 Operação Mínima:
 Você precisa ter operado por pelo menos 10 dias no mês. Isso significa que você deve ter realizado operações de trading nesses dias para ser elegível para um pedido de saque.
@@ -969,7 +920,6 @@ A solicitação de saque é feita através do seu painel de controle na platafor
 Limites e Percentuais:
 Nos primeiros 4 saques, há um limite pré-definido. Após isso, você pode sacar 100% do valor disponível acima do colchão (capital de segurança).
 Para os primeiros $15.000 de lucro, você pode sacar 100%. Para lucros acima desse valor, você pode sacar 90%.
- 
 
 Tempo de Processamento:
 Após solicitar o saque, a Ylos Trading tem até 3 dias úteis para confirmar ou reprovar o pedido. Após a confirmação, o pagamento será liberado em até 5 dias úteis. A transferência dos valores será feita por uma empresa habilitada nos EUA, que também enviará um invoice (comprovante de pagamento) válido para fins fiscais no mundo todo.
@@ -988,7 +938,6 @@ A quantidade que você pode sacar da sua conta Master na Ylos Trading depende de
 Saque Mínimo:
 
 O saque mínimo para contas de qualquer tamanho é de US$ 500.
- 
 
 Limites Iniciais de Saque (Primeiros 4 Saques):
 
@@ -998,9 +947,6 @@ Conta de US$ 100k: Máximo de US$ 2.500 por saque.
 Conta de US$ 150k: Máximo de US$ 2.750 por saque.
 Conta de US$ 250k: Máximo de US$ 3.000 por saque.
 Conta de US$ 300k: Máximo de US$ 3.500 por saque.
- 
-
- 
 
 Após os Primeiros 4 Saques:
 
@@ -1018,7 +964,6 @@ Conta de US$ 100k: US$ 103.100
 Conta de US$ 150k: US$ 155.100
 Conta de US$ 250k: US$ 256.600
 Conta de US$ 300k: US$ 307.600
- 
 
 Observações:
 Drawdown: O drawdown é o valor máximo de perda permitido na conta. Por exemplo, para uma conta de US$ 50.000, o drawdown pode ser de US$ 2.500, então o saldo mínimo para solicitar um saque seria US$ 52.600 (US$ 50.000 - US$ 2.500 + US$ 100).
@@ -1029,7 +974,6 @@ Seta
 Você será pago pela Ylos Trading através de um invoice, que é um Recibo de Pagamento Autônomo individual. Não será fornecido nenhum relatório contábil ou fiscal juntamente com o pagamento.
 
 Importante:
-
 
 Aconselhamento Fiscal: Para qualquer dúvida ou aconselhamento sobre questões fiscais, é recomendado que você entre em contato com seu contador. A Ylos Trading não oferece consultoria tributária e não pode responder perguntas relacionadas a impostos, registros, questões de cidadania, vistos de trabalho ou quaisquer outras questões fiscais.
 
@@ -1047,7 +991,6 @@ Seta
 
 Se você está enfrentando problemas com sua compra na Ylos Trading, siga estes passos para resolução e saiba com quem entrar em contato:
 
-
 Verifique o FAQ: Primeiramente, consulte a seção de Perguntas Frequentes (FAQ) no site da Ylos Trading. Muitas vezes, questões comuns sobre compras, pagamentos, ou ativação de contas são abordadas lá.
 
 E-mail de Suporte: Se o FAQ não resolve seu problema, envie um e-mail para support@ylostrading.com (mailto:support@ylostrading.com). Este é o canal oficial de suporte ao cliente da Ylos Trading para questões de compra. Inclua no e-mail:
@@ -1057,7 +1000,6 @@ Detalhes específicos do problema (número de pedido, data da compra, método de
 Qualquer captura de tela ou detalhe adicional que possa ajudar a resolver o problema
 Chat ao Vivo: A Ylos Trading também oferece um chat ao vivo em seu site. Verifique na página se o chat está disponível:
 Hora de funcionamento: Normalmente, o chat ao vivo funciona de 9:30 a.m. até 18:00 p.m. (horário de Brasília), de segunda a domingo. No entanto, confirme no site, pois esses horários podem mudar.
- 
 
 Recomendações:
 
@@ -1075,19 +1017,17 @@ Abertura: 17:00 PM (hora de Chicago) de domingo.
 Fechamento: 16:00 PM (hora de Chicago) de sexta-feira, com uma pausa diária de uma hora de 16:00 PM a 17:00 PM.
 Especificações para Ylos Trading:
 Dia Operado: Para ser considerado um dia operado na Ylos, você deve realizar pelo menos uma operação dentro do período de um dia de trading Globex. No entanto:
- 
 
 Proibição de Overnight e Swing Trading: Todas as operações devem ser abertas e fechadas dentro do mesmo dia de trading. Isso significa que:
- 
+
 Horário Efetivo para Operação: Embora o Globex esteja aberto 24/5, na Ylos Trading, você pode operar de 17:00 PM de um dia até antes das 16:00 PM do dia seguinte, mas cada operação deve ser concluída dentro desse período para não ser considerada overnight ou swing trading.
- 
 
 Ajuste de Fuso Horário: Se você está fora do fuso horário de Chicago, ajuste esses horários. Por exemplo, para o horário de Brasília (BRT), durante o horário padrão, a abertura seria às 20:00 PM e o fechamento às 19:00 PM do dia seguinte.
 Posso fazer operações de overnight ou swing trade na Ylos Trading?
 Seta
 
 Não, não é permitido realizar operações de overnight ou swing trade na Ylos Trading. Aqui estão algumas explicações sobre isso:
- 
+
 Overnight Trading:
 Proibido: Todas as posições devem ser fechadas antes do encerramento do dia de trading.
 Swing Trading:
@@ -1096,7 +1036,7 @@ Qual é o prazo que eu tenho para ativar a conta Master na Ylos Trading?
 Seta
 
 Você tem 30 dias corridos a partir da data de aquisição da Conta Challenge para efetuar o pagamento da taxa de ativação e ativar sua Conta Master.
- 
+
 Exemplo:
 Se você comprou sua Conta Challenge há 20 dias e foi aprovado para a conta Master, você tem até 10 dias restantes para pagar a taxa de ativação e converter sua conta.
 
@@ -1110,41 +1050,33 @@ Ativação: Após o pagamento, a ativação geralmente ocorre imediatamente ou d
 
 Explicar
 
-
-
-
-
 [exemplo de csv com relatorio]
-Conta: 52256																
-Titular: 50K Funded [d6421124] Ylos Trading - Leonardo Bonf																
-Data Inicial: 01/06/2025																
-Data Final: 05/06/2025																
-																
-Ativo	Abertura	Fechamento	Tempo Operação	Qtd Compra	Qtd Venda	Lado	Preço Compra	Preço Venda	Preço de Mercado	Médio	Res. Intervalo	Res. Intervalo (%)	Res. Operação	Res. Operação (%)	TET	Total
-ESFUT	04/06/2025 06:41	04/06/2025 07:21	39min53s	3	3	V	5.990,25	5.992,50	5.986,00	Não	337,5	0,04	337,5	0,04	 - 	337,5
-ESFUT	04/06/2025 07:24	04/06/2025 07:24	36s	3	3	C	5.990,00	5.990,75	5.986,00	Não	112,5	0,01	112,5	0,01	43min4s	450
-ESFUT	04/06/2025 08:45	04/06/2025 09:15	29min46s	4	4	V	5.992,00	5.992,75	5.986,00	Sim	150	0,01	150	0,01	1h20min59s	600
-ESFUT	04/06/2025 15:02	04/06/2025 15:08	6min38s	2	2	V	5.995,00	5.997,00	5.986,00	Sim	200	0,03	200	0,03	6h16min50s	800
-ESFUT	05/06/2025 07:13	05/06/2025 07:35	22min21s	4	4	V	5.986,75	5.988,00	5.986,00	Não	250	0,02	250	0,02	16h11min23s	1.050,00
-ESFUT	05/06/2025 07:41	05/06/2025 08:32	51min6s	4	4	C	5.981,38	5.982,50	5.986,00	Sim	225	0,02	225	0,02	28min19s	1.275,00
-ESFUT	05/06/2025 10:58	05/06/2025 10:59	1min43s	1	1	C	5.959,50	5.962,75	5.986,00	Sim	162,5	0,05	162,5	0,05	3h16min20s	1.437,50
-ESFUT	05/06/2025 11:00	05/06/2025 11:02	1min54s	2	2	V	5.962,25	5.964,75	5.986,00	Não	250	0,04	250	0,04	2min32s	1.687,50
+Conta: 52256
+Titular: 50K Funded [d6421124] Ylos Trading - Leonardo Bonf
+Data Inicial: 01/06/2025
+Data Final: 05/06/2025
+Ativo Abertura Fechamento Tempo Operação Qtd Compra Qtd Venda Lado Preço Compra Preço Venda Preço de Mercado Médio Res. Intervalo Res. Intervalo (%) Res. Operação Res. Operação (%) TET Total
+ESFUT 04/06/2025 06:41 04/06/2025 07:21 39min53s 3 3 V 5.990,25 5.992,50 5.986,00 Não 337,5 0,04 337,5 0,04 - 337,5
+ESFUT 04/06/2025 07:24 04/06/2025 07:24 36s 3 3 C 5.990,00 5.990,75 5.986,00 Não 112,5 0,01 112,5 0,01 43min4s 450
+ESFUT 04/06/2025 08:45 04/06/2025 09:15 29min46s 4 4 V 5.992,00 5.992,75 5.986,00 Sim 150 0,01 150 0,01 1h20min59s 600
+ESFUT 04/06/2025 15:02 04/06/2025 15:08 6min38s 2 2 V 5.995,00 5.997,00 5.986,00 Sim 200 0,03 200 0,03 6h16min50s 800
+ESFUT 05/06/2025 07:13 05/06/2025 07:35 22min21s 4 4 V 5.986,75 5.988,00 5.986,00 Não 250 0,02 250 0,02 16h11min23s 1.050,00
+ESFUT 05/06/2025 07:41 05/06/2025 08:32 51min6s 4 4 C 5.981,38 5.982,50 5.986,00 Sim 225 0,02 225 0,02 28min19s 1.275,00
+ESFUT 05/06/2025 10:58 05/06/2025 10:59 1min43s 1 1 C 5.959,50 5.962,75 5.986,00 Sim 162,5 0,05 162,5 0,05 3h16min20s 1.437,50
+ESFUT 05/06/2025 11:00 05/06/2025 11:02 1min54s 2 2 V 5.962,25 5.964,75 5.986,00 Não 250 0,04 250 0,04 2min32s 1.687,50
 
-
-
-
-
-
-[PENSEI EM UTILIZARMOS UMA API PARA VERIFICAR SE O USUARIO ESTAVA OPERANDO DURANTE NOTICIAS, ABAIXO IREI DEIXAR UM PSEUDOCODIGO PARA QUE VOCE TENHA UMA BASE DA IDEIA 
+[PENSEI EM UTILIZARMOS UMA API PARA VERIFICAR SE O USUARIO ESTAVA OPERANDO DURANTE NOTICIAS, ABAIXO IREI DEIXAR UM PSEUDOCODIGO PARA QUE VOCE TENHA UMA BASE DA IDEIA
 [import pandas as pd
 import requests
 from datetime import datetime, timedelta
 import pytz
 
 # Carregar o CSV
+
 csv_data = pd.read_csv("operations.csv", sep="\t")
 
 # Configurar API Finnhub
+
 api_key = "d10s8tpr01qse6ldnu40d10s8tpr01qse6ldnu4g"
 url = f"https://finnhub.io/api/v1/calendar/economic?from=2025-06-04&to=2025-06-05&token={api_key}"
 response = requests.get(url)
@@ -1152,26 +1084,29 @@ events = response.json().get("economicCalendar", [])
 high_impact_events = [event for event in events if event["impact"] == "high"]
 
 # Configurar fusos horários
-csv_timezone = pytz.timezone("America/Sao_Paulo")  # -03 BRT
-ny_timezone = pytz.timezone("America/New_York")    # -04 DST
+
+csv_timezone = pytz.timezone("America/Sao_Paulo") # -03 BRT
+ny_timezone = pytz.timezone("America/New_York") # -04 DST
 
 # Função para converter horário do CSV para NY time
+
 def to_ny_time(dt_str, csv_tz, ny_tz):
-    dt = datetime.strptime(dt_str, "%d/%m/%Y %H:%M")
-    dt = csv_tz.localize(dt)
-    return dt.astimezone(ny_tz)
+dt = datetime.strptime(dt_str, "%d/%m/%Y %H:%M")
+dt = csv_tz.localize(dt)
+return dt.astimezone(ny_tz)
 
 # Verificar infrações
+
 infractions = []
-for _, row in csv_data.iterrows():
-    start_time = to_ny_time(row["Abertura"], csv_timezone, ny_timezone)
-    duration = row["Tempo Operação"]
-    if "min" in duration:
-        minutes, seconds = map(int, duration.replace("min", "").replace("s", "").split())
-        end_time = start_time + timedelta(minutes=minutes, seconds=seconds)
-    else:
-        seconds = int(duration.replace("s", ""))
-        end_time = start_time + timedelta(seconds=seconds)
+for \_, row in csv_data.iterrows():
+start_time = to_ny_time(row["Abertura"], csv_timezone, ny_timezone)
+duration = row["Tempo Operação"]
+if "min" in duration:
+minutes, seconds = map(int, duration.replace("min", "").replace("s", "").split())
+end_time = start_time + timedelta(minutes=minutes, seconds=seconds)
+else:
+seconds = int(duration.replace("s", ""))
+end_time = start_time + timedelta(seconds=seconds)
 
     for event in high_impact_events:
         event_time = datetime.strptime(event["date"], "%Y-%m-%d %H:%M:%S")
@@ -1188,8 +1123,9 @@ for _, row in csv_data.iterrows():
             })
 
 # Relatar infrações
+
 if infractions:
-    for infraction in infractions:
-        print(f"Infração: Operação em {infraction['operation_start']} ({infraction['ny_start']}) coincide com {infraction['event']} às {infraction['event_time']}.")
+for infraction in infractions:
+print(f"Infração: Operação em {infraction['operation_start']} ({infraction['ny_start']}) coincide com {infraction['event']} às {infraction['event_time']}.")
 else:
-    print("Nenhuma infração relacionada a notícias encontrada.")]
+print("Nenhuma infração relacionada a notícias encontrada.")]

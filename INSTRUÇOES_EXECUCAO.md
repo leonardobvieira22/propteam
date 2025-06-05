@@ -28,6 +28,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 **✅ Resultado esperado:**
+
 ```
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 INFO:     Started reloader process
@@ -51,7 +52,7 @@ npm run dev
 ## 🔗 **URLs do Sistema:**
 
 - **Frontend**: http://localhost:3000 (ou 3001)
-- **Backend API**: http://localhost:8000  
+- **Backend API**: http://localhost:8000
 - **Documentação**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
 
@@ -60,8 +61,9 @@ npm run dev
 ## ✅ **Status das Dependências:**
 
 ### **Backend (✅ INSTALADO):**
+
 - ✅ `fastapi` - Framework web
-- ✅ `uvicorn` - Servidor ASGI  
+- ✅ `uvicorn` - Servidor ASGI
 - ✅ `pydantic` - Validação de dados
 - ✅ `pydantic-settings` - Configurações (ERA ISSO QUE FALTAVA!)
 - ✅ `pandas` - Análise de dados
@@ -70,6 +72,7 @@ npm run dev
 - ✅ `python-dotenv` - Variáveis de ambiente
 
 ### **Frontend (✅ INSTALADO):**
+
 - ✅ `next` - Framework React
 - ✅ `react` - Biblioteca UI
 - ✅ `tailwindcss` - CSS framework
@@ -81,6 +84,7 @@ npm run dev
 ## 🎯 **Como Testar o Sistema:**
 
 ### **1. Teste Backend:**
+
 ```bash
 # Teste direto no Git Bash:
 curl http://localhost:8000/health
@@ -90,12 +94,14 @@ curl http://localhost:8000/health
 ```
 
 ### **2. Teste Frontend:**
+
 ```bash
 # Acesse no navegador:
 # http://localhost:3000
 ```
 
 ### **3. Teste Completo:**
+
 1. Acesse http://localhost:3000
 2. Clique em "Analisar YLOS Trading"
 3. Preencha o formulário:
@@ -110,6 +116,7 @@ curl http://localhost:8000/health
 ## 📁 **Arquivo CSV de Exemplo (exemplo_csv_ylos.csv):**
 
 Já existe no projeto e pode ser usado para teste:
+
 ```
 Ativo	Abertura	Fechamento	Tempo Operação	Qtd Compra	Qtd Venda	Lado	Preço Compra	Preço Venda	Preço de Mercado	Médio	Res. Intervalo	Res. Intervalo (%)	Res. Operação	Res. Operação (%)	TET	Total
 ESFUT	04/06/2025 06:41	04/06/2025 07:21	39min53s	3	3	V	5.990,25	5.992,50	5.986,00	Não	337,5	0,04	337,5	0,04	 - 	337,5
@@ -120,6 +127,7 @@ ESFUT	04/06/2025 06:41	04/06/2025 07:21	39min53s	3	3	V	5.990,25	5.992,50	5.986,0
 ## 🔧 **Solução de Problemas:**
 
 ### **Erro "ModuleNotFoundError: No module named 'pydantic_settings'"**
+
 ```bash
 # SOLUÇÃO (já aplicada):
 cd backend
@@ -128,6 +136,7 @@ pip install pydantic-settings
 ```
 
 ### **Erro "command not found" no Git Bash**
+
 ```bash
 # Use 'source' em vez de '.\'
 source venv/Scripts/activate  # ✅ Correto para Git Bash
@@ -135,6 +144,7 @@ source venv/Scripts/activate  # ✅ Correto para Git Bash
 ```
 
 ### **Se o frontend der erro CSS**
+
 ```bash
 # Já corrigido no código, mas se precisar:
 npm install framer-motion --legacy-peer-deps
@@ -147,10 +157,10 @@ npm install framer-motion --legacy-peer-deps
 **🟢 SISTEMA 100% FUNCIONAL**
 
 - ✅ Backend FastAPI operacional
-- ✅ Frontend Next.js funcionando  
+- ✅ Frontend Next.js funcionando
 - ✅ Todas as dependências instaladas
 - ✅ Análise YLOS Trading implementada
 - ✅ Upload de CSV funcionando
 - ✅ Interface moderna e responsiva
 
-**O sistema está pronto para uso em produção!** 🚀 
+**O sistema está pronto para uso em produção!** 🚀

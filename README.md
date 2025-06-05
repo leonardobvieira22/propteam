@@ -21,7 +21,7 @@ Sistema enterprise-grade para análise de conformidade de saques em mesas propri
 
 ## 📋 Pré-requisitos
 
-- Node.js 18+ 
+- Node.js 18+
 - Python 3.8+
 - npm ou yarn
 
@@ -88,6 +88,7 @@ npm run deploy:check
 ### 3. Build Settings
 
 O arquivo `amplify.yml` já está configurado com:
+
 - Cache otimizado para node_modules e .next
 - Build de produção
 - Artifacts corretos

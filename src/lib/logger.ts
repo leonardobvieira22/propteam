@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
+import { randomUUID } from 'crypto';
+
 import { showLogger } from '@/constant/env';
-import { randomUUID } from 'crypto'
 
 /**
  * A logger function that will only logs on development
@@ -15,7 +16,7 @@ export default function logger(object: unknown, comment?: string): void {
     'color: #22D3EE',
     `${typeof window !== 'undefined' && window?.location.pathname}\n`,
     `=== ${comment ?? ''}\n`,
-    object
+    object,
   );
 }
 
@@ -25,49 +26,49 @@ export enum LogLevel {
   INFO = 'INFO',
   WARN = 'WARN',
   ERROR = 'ERROR',
-  CRITICAL = 'CRITICAL'
+  CRITICAL = 'CRITICAL',
 }
 
 // Context interface for structured logging
 interface LogContext {
-  requestId?: string
-  userId?: string
-  sessionId?: string
-  component?: string
-  operation?: string
-  duration?: number
-  statusCode?: number
-  [key: string]: unknown
+  requestId?: string;
+  userId?: string;
+  sessionId?: string;
+  component?: string;
+  operation?: string;
+  duration?: number;
+  statusCode?: number;
+  [key: string]: unknown;
 }
 
 // Base log entry structure for AWS CloudWatch compatibility
 interface LogEntry {
-  timestamp: string
-  level: LogLevel
-  message: string
-  service: string
-  version: string
-  environment: string
-  context?: LogContext
+  timestamp: string;
+  level: LogLevel;
+  message: string;
+  service: string;
+  version: string;
+  environment: string;
+  context?: LogContext;
   error?: {
-    name: string
-    message: string
-    stack?: string
-  }
-  metadata?: Record<string, unknown>
+    name: string;
+    message: string;
+    stack?: string;
+  };
+  metadata?: Record<string, unknown>;
 }
 
 class EnterpriseLogger {
-  private service = 'ylos-trading-analyzer'
-  private version = '1.0.0'
-  private environment: string = process.env.NODE_ENV || 'development'
+  private service = 'ylos-trading-analyzer';
+  private version = '1.0.0';
+  private environment: string = process.env.NODE_ENV || 'development';
 
   private formatLogEntry(
     level: LogLevel,
     message: string,
     context?: LogContext,
     error?: Error,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
   ): LogEntry {
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
@@ -75,219 +76,354 @@ class EnterpriseLogger {
       message,
       service: this.service,
       version: this.version,
-      environment: this.environment
-    }
+      environment: this.environment,
+    };
 
     if (context) {
-      entry.context = context
+      entry.context = context;
     }
 
     if (error) {
       entry.error = {
         name: error.name,
         message: error.message,
-        stack: error.stack
-      }
+        stack: error.stack,
+      };
     }
 
     if (metadata) {
-      entry.metadata = metadata
+      entry.metadata = metadata;
     }
 
-    return entry
+    return entry;
   }
 
   private logToConsole(entry: LogEntry): void {
     // In production, this would integrate with AWS CloudWatch or similar
-    const logString = JSON.stringify(entry, null, this.environment === 'development' ? 2 : 0)
-    
+    const logString = JSON.stringify(
+      entry,
+      null,
+      this.environment === 'development' ? 2 : 0,
+    );
+
     switch (entry.level) {
       case LogLevel.DEBUG:
-        console.debug(logString)
-        break
+        console.debug(logString);
+        break;
       case LogLevel.INFO:
-        console.info(logString)
-        break
+        console.info(logString);
+        break;
       case LogLevel.WARN:
-        console.warn(logString)
-        break
+        console.warn(logString);
+        break;
       case LogLevel.ERROR:
       case LogLevel.CRITICAL:
-        console.error(logString)
-        break
+        console.error(logString);
+        break;
       default:
-        console.log(logString)
+        console.log(logString);
     }
   }
 
-  debug(message: string, context?: LogContext, metadata?: Record<string, unknown>): void {
+  debug(
+    message: string,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
     if (this.environment === 'development') {
-      const entry = this.formatLogEntry(LogLevel.DEBUG, message, context, undefined, metadata)
-      this.logToConsole(entry)
+      const entry = this.formatLogEntry(
+        LogLevel.DEBUG,
+        message,
+        context,
+        undefined,
+        metadata,
+      );
+      this.logToConsole(entry);
     }
   }
 
-  info(message: string, context?: LogContext, metadata?: Record<string, unknown>): void {
-    const entry = this.formatLogEntry(LogLevel.INFO, message, context, undefined, metadata)
-    this.logToConsole(entry)
+  info(
+    message: string,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const entry = this.formatLogEntry(
+      LogLevel.INFO,
+      message,
+      context,
+      undefined,
+      metadata,
+    );
+    this.logToConsole(entry);
   }
 
-  warn(message: string, context?: LogContext, metadata?: Record<string, unknown>): void {
-    const entry = this.formatLogEntry(LogLevel.WARN, message, context, undefined, metadata)
-    this.logToConsole(entry)
+  warn(
+    message: string,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const entry = this.formatLogEntry(
+      LogLevel.WARN,
+      message,
+      context,
+      undefined,
+      metadata,
+    );
+    this.logToConsole(entry);
   }
 
-  error(message: string, error?: Error, context?: LogContext, metadata?: Record<string, unknown>): void {
-    const entry = this.formatLogEntry(LogLevel.ERROR, message, context, error, metadata)
-    this.logToConsole(entry)
+  error(
+    message: string,
+    error?: Error,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const entry = this.formatLogEntry(
+      LogLevel.ERROR,
+      message,
+      context,
+      error,
+      metadata,
+    );
+    this.logToConsole(entry);
   }
 
-  critical(message: string, error?: Error, context?: LogContext, metadata?: Record<string, unknown>): void {
-    const entry = this.formatLogEntry(LogLevel.CRITICAL, message, context, error, metadata)
-    this.logToConsole(entry)
+  critical(
+    message: string,
+    error?: Error,
+    context?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): void {
+    const entry = this.formatLogEntry(
+      LogLevel.CRITICAL,
+      message,
+      context,
+      error,
+      metadata,
+    );
+    this.logToConsole(entry);
   }
 
   // Performance tracking utility
-  startPerformanceTimer(operation: string, context?: LogContext): PerformanceTracker {
-    return new PerformanceTracker(this, operation, context)
+  startPerformanceTimer(
+    operation: string,
+    context?: LogContext,
+  ): PerformanceTracker {
+    return new PerformanceTracker(this, operation, context);
   }
 
   // Request correlation utility
   generateRequestId(): string {
-    return randomUUID()
+    return randomUUID();
   }
 
   // CSV Processing specific logging methods
-  csvProcessingStarted(requestId: string, csvSize: number, context?: LogContext): void {
-    this.info('CSV processing initiated', {
-      ...context,
-      requestId,
-      operation: 'csv_processing_start',
-      component: 'csv_parser'
-    }, {
-      csvSizeBytes: csvSize,
-      processingPhase: 'initialization'
-    })
+  csvProcessingStarted(
+    requestId: string,
+    csvSize: number,
+    context?: LogContext,
+  ): void {
+    this.info(
+      'CSV processing initiated',
+      {
+        ...context,
+        requestId,
+        operation: 'csv_processing_start',
+        component: 'csv_parser',
+      },
+      {
+        csvSizeBytes: csvSize,
+        processingPhase: 'initialization',
+      },
+    );
   }
 
-  csvHeaderFound(requestId: string, headerIndex: number, separator: string, columnsCount: number, context?: LogContext): void {
-    this.info('CSV header successfully detected', {
-      ...context,
-      requestId,
-      operation: 'csv_header_detection',
-      component: 'csv_parser'
-    }, {
-      headerLineIndex: headerIndex,
-      detectedSeparator: separator,
-      columnsCount,
-      processingPhase: 'header_detection'
-    })
+  csvHeaderFound(
+    requestId: string,
+    headerIndex: number,
+    separator: string,
+    columnsCount: number,
+    context?: LogContext,
+  ): void {
+    this.info(
+      'CSV header successfully detected',
+      {
+        ...context,
+        requestId,
+        operation: 'csv_header_detection',
+        component: 'csv_parser',
+      },
+      {
+        headerLineIndex: headerIndex,
+        detectedSeparator: separator,
+        columnsCount,
+        processingPhase: 'header_detection',
+      },
+    );
   }
 
-  csvOperationParsed(requestId: string, operationIndex: number, operation: unknown, context?: LogContext): void {
-    this.debug('CSV operation successfully parsed', {
-      ...context,
-      requestId,
-      operation: 'csv_operation_parse',
-      component: 'csv_parser'
-    }, {
-      operationIndex,
-      operationData: operation,
-      processingPhase: 'data_parsing'
-    })
+  csvOperationParsed(
+    requestId: string,
+    operationIndex: number,
+    operation: unknown,
+    context?: LogContext,
+  ): void {
+    this.debug(
+      'CSV operation successfully parsed',
+      {
+        ...context,
+        requestId,
+        operation: 'csv_operation_parse',
+        component: 'csv_parser',
+      },
+      {
+        operationIndex,
+        operationData: operation,
+        processingPhase: 'data_parsing',
+      },
+    );
   }
 
-  csvProcessingCompleted(requestId: string, operationsCount: number, processingTime: number, context?: LogContext): void {
-    this.info('CSV processing completed successfully', {
-      ...context,
-      requestId,
-      operation: 'csv_processing_complete',
-      component: 'csv_parser',
-      duration: processingTime
-    }, {
-      totalOperations: operationsCount,
-      processingTimeMs: processingTime,
-      processingPhase: 'completion'
-    })
+  csvProcessingCompleted(
+    requestId: string,
+    operationsCount: number,
+    processingTime: number,
+    context?: LogContext,
+  ): void {
+    this.info(
+      'CSV processing completed successfully',
+      {
+        ...context,
+        requestId,
+        operation: 'csv_processing_complete',
+        component: 'csv_parser',
+        duration: processingTime,
+      },
+      {
+        totalOperations: operationsCount,
+        processingTimeMs: processingTime,
+        processingPhase: 'completion',
+      },
+    );
   }
 
-  ylosAnalysisStarted(requestId: string, operationsCount: number, accountType: string, context?: LogContext): void {
-    this.info('YLOS Trading rules analysis initiated', {
-      ...context,
-      requestId,
-      operation: 'ylos_analysis_start',
-      component: 'ylos_analyzer'
-    }, {
-      totalOperations: operationsCount,
-      accountType,
-      analysisPhase: 'initialization'
-    })
+  ylosAnalysisStarted(
+    requestId: string,
+    operationsCount: number,
+    accountType: string,
+    context?: LogContext,
+  ): void {
+    this.info(
+      'YLOS Trading rules analysis initiated',
+      {
+        ...context,
+        requestId,
+        operation: 'ylos_analysis_start',
+        component: 'ylos_analyzer',
+      },
+      {
+        totalOperations: operationsCount,
+        accountType,
+        analysisPhase: 'initialization',
+      },
+    );
   }
 
-  ylosRuleViolation(requestId: string, ruleCode: string, severity: string, description: string, context?: LogContext): void {
-    this.warn('YLOS Trading rule violation detected', {
-      ...context,
-      requestId,
-      operation: 'ylos_rule_violation',
-      component: 'ylos_analyzer'
-    }, {
-      ruleCode,
-      severity,
-      description,
-      analysisPhase: 'rule_validation'
-    })
+  ylosRuleViolation(
+    requestId: string,
+    ruleCode: string,
+    severity: string,
+    description: string,
+    context?: LogContext,
+  ): void {
+    this.warn(
+      'YLOS Trading rule violation detected',
+      {
+        ...context,
+        requestId,
+        operation: 'ylos_rule_violation',
+        component: 'ylos_analyzer',
+      },
+      {
+        ruleCode,
+        severity,
+        description,
+        analysisPhase: 'rule_validation',
+      },
+    );
   }
 
-  ylosAnalysisCompleted(requestId: string, result: unknown, processingTime: number, context?: LogContext): void {
-    this.info('YLOS Trading analysis completed successfully', {
-      ...context,
-      requestId,
-      operation: 'ylos_analysis_complete',
-      component: 'ylos_analyzer',
-      duration: processingTime
-    }, {
-      analysisResult: result,
-      processingTimeMs: processingTime,
-      analysisPhase: 'completion'
-    })
+  ylosAnalysisCompleted(
+    requestId: string,
+    result: unknown,
+    processingTime: number,
+    context?: LogContext,
+  ): void {
+    this.info(
+      'YLOS Trading analysis completed successfully',
+      {
+        ...context,
+        requestId,
+        operation: 'ylos_analysis_complete',
+        component: 'ylos_analyzer',
+        duration: processingTime,
+      },
+      {
+        analysisResult: result,
+        processingTimeMs: processingTime,
+        analysisPhase: 'completion',
+      },
+    );
   }
 }
 
 // Performance tracking utility class
 class PerformanceTracker {
-  private startTime: number
-  private logger: EnterpriseLogger
-  private operation: string
-  private context?: LogContext
+  private startTime: number;
+  private logger: EnterpriseLogger;
+  private operation: string;
+  private context?: LogContext;
 
-  constructor(logger: EnterpriseLogger, operation: string, context?: LogContext) {
-    this.startTime = Date.now()
-    this.logger = logger
-    this.operation = operation
-    this.context = context
+  constructor(
+    logger: EnterpriseLogger,
+    operation: string,
+    context?: LogContext,
+  ) {
+    this.startTime = Date.now();
+    this.logger = logger;
+    this.operation = operation;
+    this.context = context;
   }
 
-  end(additionalContext?: LogContext, metadata?: Record<string, unknown>): number {
-    const duration = Date.now() - this.startTime
-    
-    this.logger.info(`Operation completed: ${this.operation}`, {
-      ...this.context,
-      ...additionalContext,
-      operation: this.operation,
-      duration
-    }, {
-      ...metadata,
-      executionTimeMs: duration,
-      performanceCategory: duration > 5000 ? 'slow' : duration > 1000 ? 'medium' : 'fast'
-    })
+  end(
+    additionalContext?: LogContext,
+    metadata?: Record<string, unknown>,
+  ): number {
+    const duration = Date.now() - this.startTime;
 
-    return duration
+    this.logger.info(
+      `Operation completed: ${this.operation}`,
+      {
+        ...this.context,
+        ...additionalContext,
+        operation: this.operation,
+        duration,
+      },
+      {
+        ...metadata,
+        executionTimeMs: duration,
+        performanceCategory:
+          duration > 5000 ? 'slow' : duration > 1000 ? 'medium' : 'fast',
+      },
+    );
+
+    return duration;
   }
 }
 
 // Export singleton instance
-export const enterpriseLogger = new EnterpriseLogger()
+export const enterpriseLogger = new EnterpriseLogger();
 
 // Export types for external use
-export type { LogContext, LogEntry }
-export { PerformanceTracker }
+export type { LogContext, LogEntry };
+export { PerformanceTracker };

@@ -415,7 +415,20 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       (v) => v.severidade === 'WARNING',
     );
 
-    // Calculate compliance metrics
+    // Calculate compliance metrics baseado no FAQ oficial YLOS
+    const minDaysRequired = formData.contaType === 'MASTER_FUNDED' ? 10 : 5;
+    const minWinningDays = formData.contaType === 'MASTER_FUNDED' ? 7 : 5;
+    const minDailyWin = formData.contaType === 'MASTER_FUNDED' ? 50 : 200;
+    const maxDayPercentage = formData.contaType === 'MASTER_FUNDED' ? 40 : 30;
+    const dailyLimit = parseFloat(formData.saldoAtual) * 0.05;
+
+    // Regra de Consistência oficial: % do melhor dia vs lucro total
+    const bestDayPercentage =
+      analysisResult.lucro_total > 0
+        ? (analysisResult.maior_lucro_dia / analysisResult.lucro_total) * 100
+        : 0;
+
+    // Taxa de sucesso baseada em dias vencedores com valor mínimo oficial
     const consistencyPercentage =
       analysisResult.dias_operados > 0
         ? (
@@ -424,12 +437,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           ).toFixed(1)
         : '0.0';
 
-    const minDaysRequired = formData.contaType === 'MASTER_FUNDED' ? 10 : 5;
-    const consistencyRequired =
-      formData.contaType === 'MASTER_FUNDED' ? 40 : 30;
-    const dailyLimit = parseFloat(formData.saldoAtual) * 0.05;
-
-    // YLOS Trading rules analysis
+    // YLOS Trading rules analysis - conforme FAQ oficial
     const rulesAnalysis = [
       {
         code: 'DIAS_MINIMOS',
@@ -448,20 +456,31 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
             : 'critical',
       },
       {
-        code: 'CONSISTENCIA',
-        title: 'Regra de Consistência',
-        description: `Mínimo ${consistencyRequired}% de dias vencedores`,
-        current: parseFloat(consistencyPercentage),
-        required: consistencyRequired,
+        code: 'DIAS_VENCEDORES',
+        title: 'Dias Vencedores Obrigatórios',
+        description: `Mínimo ${minWinningDays} dias com lucro ≥ $${minDailyWin}`,
+        current: analysisResult.dias_vencedores,
+        required: minWinningDays,
         status:
-          parseFloat(consistencyPercentage) >= consistencyRequired
+          analysisResult.dias_vencedores >= minWinningDays
             ? 'approved'
             : 'rejected',
-        icon: TrendingUp,
+        icon: Calendar,
         severity:
-          parseFloat(consistencyPercentage) >= consistencyRequired
+          analysisResult.dias_vencedores >= minWinningDays
             ? 'success'
             : 'critical',
+      },
+      {
+        code: 'CONSISTENCIA',
+        title: 'Regra de Consistência',
+        description: `Nenhum dia pode exceder ${maxDayPercentage}% do lucro total`,
+        current: bestDayPercentage,
+        required: maxDayPercentage,
+        status: bestDayPercentage <= maxDayPercentage ? 'approved' : 'rejected',
+        icon: TrendingUp,
+        severity:
+          bestDayPercentage <= maxDayPercentage ? 'success' : 'critical',
       },
       {
         code: 'LIMITE_DIARIO',
@@ -478,18 +497,25 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       {
         code: 'OVERNIGHT',
         title: 'Posições Overnight',
-        description: 'Verificação de operações entre dias',
+        description:
+          formData.contaType === 'MASTER_FUNDED'
+            ? 'PROIBIDO em Master Funded'
+            : 'Verificação de operações entre dias',
         current: violacoes.some((v) => v.codigo === 'OVERNIGHT')
           ? 'Detectadas'
           : 'Nenhuma',
         required: 'Nenhuma',
         status: !violacoes.some((v) => v.codigo === 'OVERNIGHT')
           ? 'approved'
-          : 'warning',
+          : formData.contaType === 'MASTER_FUNDED'
+            ? 'rejected'
+            : 'warning',
         icon: Moon,
         severity: !violacoes.some((v) => v.codigo === 'OVERNIGHT')
           ? 'success'
-          : 'warning',
+          : formData.contaType === 'MASTER_FUNDED'
+            ? 'critical'
+            : 'warning',
       },
       {
         code: 'DCA_STRATEGY',

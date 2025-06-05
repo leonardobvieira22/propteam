@@ -1,148 +1,180 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { enterpriseLogger, type LogContext } from '@/lib/logger'
+import { NextRequest, NextResponse } from 'next/server';
+
+import { type LogContext, enterpriseLogger } from '@/lib/logger';
 
 interface TradeOperation {
-  ativo: string
-  abertura: string
-  fechamento: string
-  tempo_operacao: string
-  qtd_compra: number
-  qtd_venda: number
-  lado: 'C' | 'V'
-  preco_compra: number
-  preco_venda: number
-  preco_mercado: number
-  medio: string
-  res_intervalo: number
-  res_operacao: number
-  total: number
+  ativo: string;
+  abertura: string;
+  fechamento: string;
+  tempo_operacao: string;
+  qtd_compra: number;
+  qtd_venda: number;
+  lado: 'C' | 'V';
+  preco_compra: number;
+  preco_venda: number;
+  preco_mercado: number;
+  medio: string;
+  res_intervalo: number;
+  res_operacao: number;
+  total: number;
 }
 
 interface AnalysisResult {
-  aprovado: boolean
-  total_operacoes: number
-  dias_operados: number
-  dias_vencedores: number
-  lucro_total: number
-  maior_lucro_dia: number
-  consistencia_40_percent: boolean
+  aprovado: boolean;
+  total_operacoes: number;
+  dias_operados: number;
+  dias_vencedores: number;
+  lucro_total: number;
+  maior_lucro_dia: number;
+  consistencia_40_percent: boolean;
   violacoes: Array<{
-    codigo: string
-    titulo: string
-    descricao: string
-    severidade: 'CRITICAL' | 'WARNING' | 'INFO'
-    valor_impacto?: number
-    operacoes_afetadas?: unknown[]
-  }>
-  detalhes_noticias?: unknown[]
-  recomendacoes: string[]
-  proximos_passos: string[]
+    codigo: string;
+    titulo: string;
+    descricao: string;
+    severidade: 'CRITICAL' | 'WARNING' | 'INFO';
+    valor_impacto?: number;
+    operacoes_afetadas?: unknown[];
+  }>;
+  detalhes_noticias?: unknown[];
+  recomendacoes: string[];
+  proximos_passos: string[];
 }
 
-function parseCSV(csvContent: string, requestId: string, context?: LogContext): TradeOperation[] {
-  const parseTimer = enterpriseLogger.startPerformanceTimer('csv_parsing', { ...context, requestId })
-  const lines = csvContent.trim().split('\n')
-  const operations: TradeOperation[] = []
-  
+function parseCSV(
+  csvContent: string,
+  requestId: string,
+  context?: LogContext,
+): TradeOperation[] {
+  const parseTimer = enterpriseLogger.startPerformanceTimer('csv_parsing', {
+    ...context,
+    requestId,
+  });
+  const lines = csvContent.trim().split('\n');
+  const operations: TradeOperation[] = [];
+
   // Initialize CSV processing logging
-  enterpriseLogger.csvProcessingStarted(requestId, csvContent.length, context)
-  
+  enterpriseLogger.csvProcessingStarted(requestId, csvContent.length, context);
+
   // Find the header line that contains "Ativo"
-  let headerIndex = -1
-  let detectedSeparator = '\t'
-  
+  let headerIndex = -1;
+  let detectedSeparator = '\t';
+
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    
+    const line = lines[i];
+
     // Try different separators to find the header
-    const separators = ['\t', ';', ',', '|']
-    
+    const separators = ['\t', ';', ',', '|'];
+
     for (const sep of separators) {
-      const columns = line.split(sep)
-      if (columns.length > 10 && 
-          line.includes('Ativo') && 
-          line.includes('Abertura') && 
-          line.includes('Fechamento')) {
-        headerIndex = i
-                 detectedSeparator = sep
-         enterpriseLogger.csvHeaderFound(requestId, i, sep, columns.length, context)
-         break
+      const columns = line.split(sep);
+      if (
+        columns.length > 10 &&
+        line.includes('Ativo') &&
+        line.includes('Abertura') &&
+        line.includes('Fechamento')
+      ) {
+        headerIndex = i;
+        detectedSeparator = sep;
+        enterpriseLogger.csvHeaderFound(
+          requestId,
+          i,
+          sep,
+          columns.length,
+          context,
+        );
+        break;
       }
     }
-    
-    if (headerIndex !== -1) break
+
+    if (headerIndex !== -1) break;
   }
-  
+
   if (headerIndex === -1) {
-    enterpriseLogger.error('CSV header not found - invalid CSV format', undefined, { ...context, requestId }, {
-      csvSize: csvContent.length,
-      totalLines: lines.length,
-      searchedColumns: ['Ativo', 'Abertura', 'Fechamento']
-    })
-    parseTimer.end({ status: 'failed', reason: 'header_not_found' })
-    return operations // No valid header found
+    enterpriseLogger.error(
+      'CSV header not found - invalid CSV format',
+      undefined,
+      { ...context, requestId },
+      {
+        csvSize: csvContent.length,
+        totalLines: lines.length,
+        searchedColumns: ['Ativo', 'Abertura', 'Fechamento'],
+      },
+    );
+    parseTimer.end({ status: 'failed', reason: 'header_not_found' });
+    return operations; // No valid header found
   }
-  
+
   // Parse number in Brazilian format (1.234,56 -> 1234.56)
   function parseBrazilianNumber(value: string): number {
-    if (!value || value.trim() === '' || value.trim() === '-') return 0
-    
+    if (!value || value.trim() === '' || value.trim() === '-') return 0;
+
     // Remove spaces and handle special cases
-    let cleanValue = value.trim().replace(/\s+/g, '')
-    
+    let cleanValue = value.trim().replace(/\s+/g, '');
+
     // If it contains both . and ,, assume . is thousands separator and , is decimal
     if (cleanValue.includes('.') && cleanValue.includes(',')) {
-      cleanValue = cleanValue.replace(/\./g, '').replace(',', '.')
+      cleanValue = cleanValue.replace(/\./g, '').replace(',', '.');
     }
     // If it only contains , assume it's decimal separator
     else if (cleanValue.includes(',') && !cleanValue.includes('.')) {
-      cleanValue = cleanValue.replace(',', '.')
+      cleanValue = cleanValue.replace(',', '.');
     }
     // If it only contains . and has more than 3 digits after it, it's thousands separator
     else if (cleanValue.includes('.')) {
-      const parts = cleanValue.split('.')
+      const parts = cleanValue.split('.');
       if (parts.length === 2 && parts[1].length > 2) {
         // This is thousands separator, not decimal
-        cleanValue = cleanValue.replace('.', '')
+        cleanValue = cleanValue.replace('.', '');
       }
     }
-    
-    const result = parseFloat(cleanValue)
-    return isNaN(result) ? 0 : result
+
+    const result = parseFloat(cleanValue);
+    return isNaN(result) ? 0 : result;
   }
-  
+
   // Process data lines after header
-  enterpriseLogger.debug(`Processing CSV data lines from ${headerIndex + 1} to ${lines.length - 1}`, { ...context, requestId })
-  
-  let processedOperations = 0
-  let skippedLines = 0
-  
+  enterpriseLogger.debug(
+    `Processing CSV data lines from ${headerIndex + 1} to ${lines.length - 1}`,
+    { ...context, requestId },
+  );
+
+  let processedOperations = 0;
+  let skippedLines = 0;
+
   for (let i = headerIndex + 1; i < lines.length; i++) {
-    const line = lines[i].trim()
-    if (!line) continue
-    
+    const line = lines[i].trim();
+    if (!line) continue;
+
     // Split by detected separator
-    const columns = line.split(detectedSeparator)
-    
+    const columns = line.split(detectedSeparator);
+
     if (columns.length < 10) {
-      enterpriseLogger.debug(`Skipping CSV line: insufficient columns`, { ...context, requestId }, {
-        lineNumber: i,
-        columnsCount: columns.length,
-        minimumRequired: 10
-      })
-      skippedLines++
-      continue
+      enterpriseLogger.debug(
+        `Skipping CSV line: insufficient columns`,
+        { ...context, requestId },
+        {
+          lineNumber: i,
+          columnsCount: columns.length,
+          minimumRequired: 10,
+        },
+      );
+      skippedLines++;
+      continue;
     }
-    
+
     // Skip lines that don't look like data (empty first column or doesn't start with asset name)
     if (!columns[0] || columns[0].trim() === '') {
-      enterpriseLogger.debug(`Skipping CSV line: empty first column`, { ...context, requestId }, {
-        lineNumber: i
-      })
-      skippedLines++
-      continue
+      enterpriseLogger.debug(
+        `Skipping CSV line: empty first column`,
+        { ...context, requestId },
+        {
+          lineNumber: i,
+        },
+      );
+      skippedLines++;
+      continue;
     }
-    
+
     try {
       const operation: TradeOperation = {
         ativo: columns[0].trim(),
@@ -158,187 +190,370 @@ function parseCSV(csvContent: string, requestId: string, context?: LogContext): 
         medio: columns[10].trim(),
         res_intervalo: parseBrazilianNumber(columns[11]),
         res_operacao: parseBrazilianNumber(columns[13]),
-        total: parseBrazilianNumber(columns[16])
-      }
-      
-            // Validate that we have essential data
+        total: parseBrazilianNumber(columns[16]),
+      };
+
+      // Validate that we have essential data
       if (operation.ativo && operation.abertura && operation.fechamento) {
-        operations.push(operation)
-        processedOperations++
-        enterpriseLogger.csvOperationParsed(requestId, processedOperations, {
-          ativo: operation.ativo,
-          abertura: operation.abertura,
-          res_operacao: operation.res_operacao
-        }, context)
+        operations.push(operation);
+        processedOperations++;
+        enterpriseLogger.csvOperationParsed(
+          requestId,
+          processedOperations,
+          {
+            ativo: operation.ativo,
+            abertura: operation.abertura,
+            res_operacao: operation.res_operacao,
+          },
+          context,
+        );
       } else {
-        enterpriseLogger.warn(`Invalid operation data in CSV line`, { ...context, requestId }, {
-          lineNumber: i,
-          ativo: operation.ativo,
-          abertura: operation.abertura,
-          fechamento: operation.fechamento
-        })
-        skippedLines++
+        enterpriseLogger.warn(
+          `Invalid operation data in CSV line`,
+          { ...context, requestId },
+          {
+            lineNumber: i,
+            ativo: operation.ativo,
+            abertura: operation.abertura,
+            fechamento: operation.fechamento,
+          },
+        );
+        skippedLines++;
       }
     } catch (error) {
-      enterpriseLogger.error(`Error processing CSV line`, error as Error, { ...context, requestId }, {
-        lineNumber: i,
-        lineContent: line.substring(0, 100)
-      })
-      skippedLines++
+      enterpriseLogger.error(
+        `Error processing CSV line`,
+        error as Error,
+        { ...context, requestId },
+        {
+          lineNumber: i,
+          lineContent: line.substring(0, 100),
+        },
+      );
+      skippedLines++;
     }
   }
-  
-  const processingTime = parseTimer.end({ 
+
+  const processingTime = parseTimer.end({
     status: 'completed',
     totalOperations: operations.length,
-    skippedLines 
-  })
-  
-  enterpriseLogger.csvProcessingCompleted(requestId, operations.length, processingTime, context)
-  
-  return operations
+    skippedLines,
+  });
+
+  enterpriseLogger.csvProcessingCompleted(
+    requestId,
+    operations.length,
+    processingTime,
+    context,
+  );
+
+  return operations;
 }
 
 function parseDate(dateStr: string): Date {
   // Parse date in format DD/MM/YYYY HH:MM
-  const [datePart, timePart] = dateStr.split(' ')
-  const [day, month, year] = datePart.split('/')
-  const [hour, minute] = (timePart || '00:00').split(':')
-  
+  const [datePart, timePart] = dateStr.split(' ');
+  const [day, month, year] = datePart.split('/');
+  const [hour, minute] = (timePart || '00:00').split(':');
+
   return new Date(
     parseInt(year),
     parseInt(month) - 1,
     parseInt(day),
     parseInt(hour),
-    parseInt(minute)
-  )
+    parseInt(minute),
+  );
 }
 
 function analyzeYLOSRules(
-  operations: TradeOperation[], 
+  operations: TradeOperation[],
   contaType: 'MASTER_FUNDED' | 'INSTANT_FUNDING',
   saldoAtual: number,
   requestId: string,
-  context?: LogContext
+  context?: LogContext,
 ): AnalysisResult {
-  const violacoes: AnalysisResult['violacoes'] = []
-  const recomendacoes: string[] = []
-  const proximos_passos: string[] = []
-  
+  const violacoes: AnalysisResult['violacoes'] = [];
+  const recomendacoes: string[] = [];
+  const proximos_passos: string[] = [];
+
   // Group operations by day
-  const operationsByDay = new Map<string, TradeOperation[]>()
-  const resultsByDay = new Map<string, number>()
-  
+  const operationsByDay = new Map<string, TradeOperation[]>();
+  const resultsByDay = new Map<string, number>();
+
   for (const op of operations) {
-    const date = parseDate(op.abertura)
-    const dayKey = date.toISOString().split('T')[0]
-    
+    const date = parseDate(op.abertura);
+    const dayKey = date.toISOString().split('T')[0];
+
     if (!operationsByDay.has(dayKey)) {
-      operationsByDay.set(dayKey, [])
-      resultsByDay.set(dayKey, 0)
+      operationsByDay.set(dayKey, []);
+      resultsByDay.set(dayKey, 0);
     }
-    
-    const dayOps = operationsByDay.get(dayKey)
+
+    const dayOps = operationsByDay.get(dayKey);
     if (dayOps) {
-      dayOps.push(op)
+      dayOps.push(op);
     }
-    resultsByDay.set(dayKey, (resultsByDay.get(dayKey) || 0) + op.res_operacao)
+    resultsByDay.set(dayKey, (resultsByDay.get(dayKey) || 0) + op.res_operacao);
   }
-  
-  const diasOperados = operationsByDay.size
-  const diasVencedores = Array.from(resultsByDay.values()).filter(result => result > 0).length
-  const lucroTotal = operations.reduce((sum, op) => sum + op.res_operacao, 0)
-  const maiorLucroDia = Math.max(...Array.from(resultsByDay.values()))
-  
+
+  const diasOperados = operationsByDay.size;
+  const lucroTotal = operations.reduce((sum, op) => sum + op.res_operacao, 0);
+  const maiorLucroDia = Math.max(
+    ...Array.from(resultsByDay.values()).filter((v) => v > 0),
+    0,
+  );
+
+  // YLOS Official Rules Implementation
+  const minDays = contaType === 'MASTER_FUNDED' ? 10 : 5;
+  const minWinningDays = contaType === 'MASTER_FUNDED' ? 7 : 5;
+  const minDailyWin = contaType === 'MASTER_FUNDED' ? 50 : 200; // Valor mínimo para considerar dia vencedor
+  const maxDayPercentage = contaType === 'MASTER_FUNDED' ? 40 : 30; // % máximo que um dia pode representar do lucro total
+
+  // Calcular dias vencedores conforme regras oficiais YLOS
+  const diasVencedores = Array.from(resultsByDay.values()).filter(
+    (result) => result >= minDailyWin,
+  ).length;
+
   // Rule 1: Minimum trading days (varies by account type)
-  const minDays = contaType === 'MASTER_FUNDED' ? 10 : 5
   if (diasOperados < minDays) {
     const violation = {
       codigo: 'DIAS_MINIMOS',
       titulo: 'Dias de operação insuficientes',
-      descricao: `São necessários pelo menos ${minDays} dias de operação. Você operou apenas ${diasOperados} dias.`,
-      severidade: 'CRITICAL' as const
+      descricao: `São necessários pelo menos ${minDays} dias de operação para ${contaType === 'MASTER_FUNDED' ? 'Master Funded' : 'Instant Funding'}. Você operou apenas ${diasOperados} dias.`,
+      severidade: 'CRITICAL' as const,
+    };
+    violacoes.push(violation);
+    enterpriseLogger.ylosRuleViolation(
+      requestId,
+      'DIAS_MINIMOS',
+      'CRITICAL',
+      violation.descricao,
+      context,
+    );
+  }
+
+  // Rule 2: Minimum winning days (varies by account type)
+  if (diasVencedores < minWinningDays) {
+    const violation = {
+      codigo: 'DIAS_VENCEDORES',
+      titulo: 'Dias vencedores insuficientes',
+      descricao: `São necessários pelo menos ${minWinningDays} dias vencedores (com lucro ≥ $${minDailyWin}). Você tem apenas ${diasVencedores} dias vencedores.`,
+      severidade: 'CRITICAL' as const,
+    };
+    violacoes.push(violation);
+    enterpriseLogger.ylosRuleViolation(
+      requestId,
+      'DIAS_VENCEDORES',
+      'CRITICAL',
+      violation.descricao,
+      context,
+    );
+  }
+
+  // Rule 3: Consistency rule - nenhum dia pode representar mais que % do lucro total
+  let consistencia_40_percent = true;
+  if (lucroTotal > 0 && maiorLucroDia > 0) {
+    const percentualMelhorDia = (maiorLucroDia / lucroTotal) * 100;
+
+    if (percentualMelhorDia > maxDayPercentage) {
+      consistencia_40_percent = false;
+      violacoes.push({
+        codigo: 'CONSISTENCIA',
+        titulo: 'Regra de consistência violada',
+        descricao: `Nenhum dia pode representar mais de ${maxDayPercentage}% do lucro total. Seu melhor dia representa ${percentualMelhorDia.toFixed(1)}% ($${maiorLucroDia.toFixed(2)} de $${lucroTotal.toFixed(2)}).`,
+        severidade: 'CRITICAL',
+      });
+      enterpriseLogger.ylosRuleViolation(
+        requestId,
+        'CONSISTENCIA',
+        'CRITICAL',
+        `Dia representou ${percentualMelhorDia.toFixed(1)}% do lucro total`,
+        context,
+      );
     }
-    violacoes.push(violation)
-    enterpriseLogger.ylosRuleViolation(requestId, 'DIAS_MINIMOS', 'CRITICAL', violation.descricao, context)
   }
-  
-  // Rule 2: Consistency rule (40% for Master Funded, 30% for Instant Funding)
-  const consistencyThreshold = contaType === 'MASTER_FUNDED' ? 0.4 : 0.3
-  const consistencyRatio = diasOperados > 0 ? diasVencedores / diasOperados : 0
-  const consistencia_40_percent = consistencyRatio >= consistencyThreshold
-  
-  if (!consistencia_40_percent) {
-    violacoes.push({
-      codigo: 'CONSISTENCIA',
-      titulo: 'Regra de consistência violada',
-      descricao: `É necessário ${(consistencyThreshold * 100)}% de dias vencedores. Você tem ${(consistencyRatio * 100).toFixed(1)}% (${diasVencedores}/${diasOperados} dias).`,
-      severidade: 'CRITICAL'
-    })
-  }
-  
-  // Rule 3: Daily profit limit (based on account balance)
-  const dailyLimit = saldoAtual * 0.05 // 5% of account balance
+
+  // Rule 4: Daily profit limit (based on account balance)
+  const dailyLimit = saldoAtual * 0.05; // 5% of account balance
   resultsByDay.forEach((result, day) => {
     if (result > dailyLimit) {
       violacoes.push({
         codigo: 'LIMITE_DIARIO',
         titulo: 'Limite diário de lucro excedido',
-        descricao: `No dia ${day}, o lucro de $${result.toFixed(2)} excedeu o limite diário de $${dailyLimit.toFixed(2)} (5% do saldo).`,
+        descricao: `No dia ${day}, o lucro de $${result.toFixed(2)} excedeu o limite diário de $${dailyLimit.toFixed(2)} (5% do saldo da conta).`,
         severidade: 'WARNING',
-        valor_impacto: result - dailyLimit
-      })
+        valor_impacto: result - dailyLimit,
+      });
+      enterpriseLogger.ylosRuleViolation(
+        requestId,
+        'LIMITE_DIARIO',
+        'WARNING',
+        `Lucro de $${result.toFixed(2)} excedeu limite de $${dailyLimit.toFixed(2)}`,
+        context,
+      );
     }
-  })
-  
-  // Rule 4: Check for DCA strategy (medium averaging)
-  const dcaOperations = operations.filter(op => op.medio === 'Sim')
-  const dcaDays = new Set(dcaOperations.map(op => parseDate(op.abertura).toISOString().split('T')[0])).size
-  
+  });
+
+  // Rule 5: Check for DCA strategy (maximum 3 averagings per operation)
+  const dcaOperations = operations.filter((op) => op.medio === 'Sim');
+  const dcaDays = new Set(
+    dcaOperations.map(
+      (op) => parseDate(op.abertura).toISOString().split('T')[0],
+    ),
+  ).size;
+
   if (dcaDays > 3) {
     violacoes.push({
       codigo: 'DCA_EXCESSIVO',
-      titulo: 'Estratégia de médio excessiva',
-      descricao: `Detectado uso de estratégia de médio em ${dcaDays} dias. Máximo permitido: 3 dias.`,
+      titulo: 'Estratégia de médio (DCA) excessiva',
+      descricao: `Detectado uso de estratégia de médio em ${dcaDays} dias. Regra YLOS: máximo 3 médios por operação.`,
       severidade: 'WARNING',
-      operacoes_afetadas: dcaOperations
-    })
+      operacoes_afetadas: dcaOperations,
+    });
+    enterpriseLogger.ylosRuleViolation(
+      requestId,
+      'DCA_EXCESSIVO',
+      'WARNING',
+      `DCA usado em ${dcaDays} dias`,
+      context,
+    );
   }
-  
-  // Rule 5: Check for overnight positions (simplified check)
-  const overnightOperations = operations.filter(op => {
-    const abertura = parseDate(op.abertura)
-    const fechamento = parseDate(op.fechamento)
-    return abertura.getDate() !== fechamento.getDate()
-  })
-  
+
+  // Rule 6: Check for overnight positions (prohibited in Master Funded)
+  const overnightOperations = operations.filter((op) => {
+    const abertura = parseDate(op.abertura);
+    const fechamento = parseDate(op.fechamento);
+    return abertura.getDate() !== fechamento.getDate();
+  });
+
   if (overnightOperations.length > 0) {
+    const severidade = contaType === 'MASTER_FUNDED' ? 'CRITICAL' : 'WARNING';
     violacoes.push({
       codigo: 'OVERNIGHT',
       titulo: 'Posições overnight detectadas',
-      descricao: `Detectadas ${overnightOperations.length} operações que permaneceram abertas durante a noite.`,
-      severidade: 'WARNING',
-      operacoes_afetadas: overnightOperations
-    })
+      descricao: `Detectadas ${overnightOperations.length} operações overnight. ${contaType === 'MASTER_FUNDED' ? 'PROIBIDO em Master Funded.' : 'Atenção: verifique conformidade.'}`,
+      severidade,
+      operacoes_afetadas: overnightOperations,
+    });
+    enterpriseLogger.ylosRuleViolation(
+      requestId,
+      'OVERNIGHT',
+      severidade,
+      `${overnightOperations.length} operações overnight`,
+      context,
+    );
   }
-  
-  // Generate recommendations
+
+  // Generate professional recommendations based on YLOS official rules
+  const criticalViolations = violacoes.filter(
+    (v) => v.severidade === 'CRITICAL',
+  );
+  const warningViolations = violacoes.filter((v) => v.severidade === 'WARNING');
+
   if (violacoes.length === 0) {
-    recomendacoes.push('Parabéns! Todas as regras YLOS Trading foram atendidas.')
-    proximos_passos.push('Você pode solicitar o saque seguindo o processo normal da YLOS Trading.')
+    recomendacoes.push(
+      '🎉 Excelente! Todas as regras oficiais da YLOS Trading foram atendidas com sucesso.',
+    );
+    recomendacoes.push(
+      'Sua estratégia de trading demonstra consistência e conformidade enterprise-grade.',
+    );
+    recomendacoes.push(
+      'Continue mantendo essa disciplina operacional para sustentabilidade a longo prazo.',
+    );
+
+    proximos_passos.push(
+      'Solicite o saque através do painel YLOS Trading seguindo o processo oficial.',
+    );
+    proximos_passos.push(
+      'Mantenha o saldo mínimo requerido: drawdown + $100 para futuras operações.',
+    );
+    proximos_passos.push(
+      'Continue operando com a mesma disciplina para preservar o status aprovado.',
+    );
   } else {
-    recomendacoes.push('Foram identificadas violações das regras YLOS Trading.')
-    recomendacoes.push('Revise as operações destacadas antes de solicitar o saque.')
-    
-    if (violacoes.some(v => v.severidade === 'CRITICAL')) {
-      proximos_passos.push('Corrija as violações críticas antes de solicitar o saque.')
-    } else {
-      proximos_passos.push('As violações são de baixa severidade, mas devem ser consideradas.')
+    recomendacoes.push(
+      `⚠️ Análise identificou ${criticalViolations.length} violação(ões) crítica(s) e ${warningViolations.length} alerta(s).`,
+    );
+
+    if (criticalViolations.length > 0) {
+      recomendacoes.push(
+        'As violações críticas IMPEDEM a aprovação do saque conforme regulamento YLOS.',
+      );
+
+      if (criticalViolations.some((v) => v.codigo === 'DIAS_MINIMOS')) {
+        recomendacoes.push(
+          `Continue operando até completar ${minDays} dias de trading para ${contaType === 'MASTER_FUNDED' ? 'Master Funded' : 'Instant Funding'}.`,
+        );
+      }
+
+      if (criticalViolations.some((v) => v.codigo === 'DIAS_VENCEDORES')) {
+        recomendacoes.push(
+          `Foque em atingir ${minWinningDays} dias vencedores com lucro mínimo de $${minDailyWin} por dia.`,
+        );
+      }
+
+      if (criticalViolations.some((v) => v.codigo === 'CONSISTENCIA')) {
+        recomendacoes.push(
+          `Distribua melhor os lucros: nenhum dia pode exceder ${maxDayPercentage}% do lucro total.`,
+        );
+      }
+
+      if (criticalViolations.some((v) => v.codigo === 'OVERNIGHT')) {
+        recomendacoes.push(
+          'Elimine completamente operações overnight - proibidas em Master Funded.',
+        );
+      }
     }
+
+    if (warningViolations.length > 0) {
+      recomendacoes.push(
+        'Os alertas não impedem o saque mas devem ser considerados para melhor performance.',
+      );
+
+      if (warningViolations.some((v) => v.codigo === 'LIMITE_DIARIO')) {
+        recomendacoes.push(
+          'Monitore o limite diário de 5% do saldo para gestão de risco otimizada.',
+        );
+      }
+
+      if (warningViolations.some((v) => v.codigo === 'DCA_EXCESSIVO')) {
+        recomendacoes.push(
+          'Limite a estratégia de médio a máximo 3 operações conforme regras YLOS.',
+        );
+      }
+    }
+
+    // Próximos passos específicos
+    if (criticalViolations.length > 0) {
+      proximos_passos.push(
+        '🔴 AÇÃO OBRIGATÓRIA: Resolva todas as violações críticas antes de solicitar saque.',
+      );
+      proximos_passos.push(
+        'Continue operando seguindo rigorosamente as regras oficiais YLOS Trading.',
+      );
+      proximos_passos.push(
+        'Execute nova análise após correções para verificar conformidade.',
+      );
+    } else {
+      proximos_passos.push(
+        '🟡 Violações são avisos - saque pode ser solicitado mas considere melhorias.',
+      );
+      proximos_passos.push(
+        'Implemente ajustes sugeridos para otimizar performance futura.',
+      );
+      proximos_passos.push(
+        'Monitore métricas continuamente para manter excelência operacional.',
+      );
+    }
+
+    proximos_passos.push(
+      'Consulte FAQ oficial YLOS Trading (ylostrading.com) para esclarecimentos.',
+    );
   }
-  
-  const aprovado = violacoes.filter(v => v.severidade === 'CRITICAL').length === 0
-  
+
+  const aprovado =
+    violacoes.filter((v) => v.severidade === 'CRITICAL').length === 0;
+
   return {
     aprovado,
     total_operacoes: operations.length,
@@ -349,31 +564,36 @@ function analyzeYLOSRules(
     consistencia_40_percent,
     violacoes,
     recomendacoes,
-    proximos_passos
-  }
+    proximos_passos,
+  };
 }
 
 export async function POST(request: NextRequest) {
-  const requestTimer = enterpriseLogger.startPerformanceTimer('ylos_analysis_request')
-  const requestId = enterpriseLogger.generateRequestId()
-  
+  const requestTimer = enterpriseLogger.startPerformanceTimer(
+    'ylos_analysis_request',
+  );
+  const requestId = enterpriseLogger.generateRequestId();
+
   const requestContext: LogContext = {
     requestId,
     component: 'ylos_analysis_api',
-    operation: 'analyze_trading_data'
-  }
-  
-  try {
+    operation: 'analyze_trading_data',
+  };
 
-    enterpriseLogger.info('YLOS Trading analysis request initiated', requestContext, {
-      method: request.method,
-      url: request.url,
-      userAgent: request.headers.get('user-agent'),
-      requestPhase: 'initialization'
-    })
-    
-    const body = await request.json()
-    
+  try {
+    enterpriseLogger.info(
+      'YLOS Trading analysis request initiated',
+      requestContext,
+      {
+        method: request.method,
+        url: request.url,
+        userAgent: request.headers.get('user-agent'),
+        requestPhase: 'initialization',
+      },
+    );
+
+    const body = await request.json();
+
     // Validate required fields
     if (!body.csv_content || !body.conta_type || !body.saldo_atual) {
       // console.log('❌ Validation failed - Missing required fields', {
@@ -381,11 +601,14 @@ export async function POST(request: NextRequest) {
       //   hasContaType: !!body.conta_type,
       //   hasSaldo: !!body.saldo_atual
       // })
-      
+
       return NextResponse.json(
-        { detail: 'Dados obrigatórios não fornecidos (csv_content, conta_type, saldo_atual)' },
-        { status: 400 }
-      )
+        {
+          detail:
+            'Dados obrigatórios não fornecidos (csv_content, conta_type, saldo_atual)',
+        },
+        { status: 400 },
+      );
     }
 
     // console.log('✅ Request validation passed', {
@@ -397,68 +620,106 @@ export async function POST(request: NextRequest) {
     // })
 
     // Parse CSV data
-    const operations = parseCSV(body.csv_content, requestId, requestContext)
+    const operations = parseCSV(body.csv_content, requestId, requestContext);
 
     if (operations.length === 0) {
-      enterpriseLogger.warn('No valid operations found in CSV', requestContext, {
-        csvSize: body.csv_content.length,
-        requestPhase: 'validation_failed'
-      })
-      requestTimer.end({ status: 'failed', reason: 'no_operations_found' }, { statusCode: 400 })
-      
+      enterpriseLogger.warn(
+        'No valid operations found in CSV',
+        requestContext,
+        {
+          csvSize: body.csv_content.length,
+          requestPhase: 'validation_failed',
+        },
+      );
+      requestTimer.end(
+        { status: 'failed', reason: 'no_operations_found' },
+        { statusCode: 400 },
+      );
+
       return NextResponse.json(
         { detail: 'Nenhuma operação válida encontrada no CSV' },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
     // Perform YLOS analysis
-    const analysisTimer = enterpriseLogger.startPerformanceTimer('ylos_rules_analysis', requestContext)
-    enterpriseLogger.ylosAnalysisStarted(requestId, operations.length, body.conta_type, requestContext)
-    
-    const result = analyzeYLOSRules(operations, body.conta_type, body.saldo_atual, requestId, requestContext)
-    
-    const analysisTime = analysisTimer.end({ 
+    const analysisTimer = enterpriseLogger.startPerformanceTimer(
+      'ylos_rules_analysis',
+      requestContext,
+    );
+    enterpriseLogger.ylosAnalysisStarted(
+      requestId,
+      operations.length,
+      body.conta_type,
+      requestContext,
+    );
+
+    const result = analyzeYLOSRules(
+      operations,
+      body.conta_type,
+      body.saldo_atual,
+      requestId,
+      requestContext,
+    );
+
+    const analysisTime = analysisTimer.end({
       status: 'completed',
       operationsAnalyzed: operations.length,
-      violationsFound: result.violacoes.length 
-    })
-    
-    enterpriseLogger.ylosAnalysisCompleted(requestId, {
-      approved: result.aprovado,
-      totalOperations: result.total_operacoes,
-      daysTraded: result.dias_operados,
-      violationsCount: result.violacoes.length
-    }, analysisTime, requestContext)
+      violationsFound: result.violacoes.length,
+    });
 
-    const _totalTime = requestTimer.end({ 
-      status: 'success',
-      operationsProcessed: result.total_operacoes,
-      analysisResult: result.aprovado ? 'approved' : 'rejected'
-    }, { statusCode: 200 })
-
-    return NextResponse.json(result)
-
-  } catch (error) {
-    const errorInstance = error instanceof Error ? error : new Error('Unknown error')
-    
-    enterpriseLogger.critical('Critical error in YLOS Trading analysis', errorInstance, requestContext, {
-      endpoint: '/api/ylos/analyze',
-      requestPhase: 'processing_error'
-    })
-    
-    requestTimer.end({ 
-      status: 'error',
-      errorType: errorInstance.name,
-      errorMessage: errorInstance.message 
-    }, { statusCode: 500 })
-    
-    return NextResponse.json(
-      { 
-        detail: 'Erro interno do servidor. Verifique os dados enviados e tente novamente.',
-        error_code: 'INTERNAL_SERVER_ERROR'
+    enterpriseLogger.ylosAnalysisCompleted(
+      requestId,
+      {
+        approved: result.aprovado,
+        totalOperations: result.total_operacoes,
+        daysTraded: result.dias_operados,
+        violationsCount: result.violacoes.length,
       },
-      { status: 500 }
-    )
+      analysisTime,
+      requestContext,
+    );
+
+    const _totalTime = requestTimer.end(
+      {
+        status: 'success',
+        operationsProcessed: result.total_operacoes,
+        analysisResult: result.aprovado ? 'approved' : 'rejected',
+      },
+      { statusCode: 200 },
+    );
+
+    return NextResponse.json(result);
+  } catch (error) {
+    const errorInstance =
+      error instanceof Error ? error : new Error('Unknown error');
+
+    enterpriseLogger.critical(
+      'Critical error in YLOS Trading analysis',
+      errorInstance,
+      requestContext,
+      {
+        endpoint: '/api/ylos/analyze',
+        requestPhase: 'processing_error',
+      },
+    );
+
+    requestTimer.end(
+      {
+        status: 'error',
+        errorType: errorInstance.name,
+        errorMessage: errorInstance.message,
+      },
+      { statusCode: 500 },
+    );
+
+    return NextResponse.json(
+      {
+        detail:
+          'Erro interno do servidor. Verifique os dados enviados e tente novamente.',
+        error_code: 'INTERNAL_SERVER_ERROR',
+      },
+      { status: 500 },
+    );
   }
-} 
+}

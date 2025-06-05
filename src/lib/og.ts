@@ -20,7 +20,7 @@ export function openGraph({
     : title;
 
   const ogUrl = `${siteConfig.url}/api/og?title=${encodeURIComponent(
-    ogTitle
+    ogTitle,
   )}&description=${encodeURIComponent(description)}`;
 
   return ogUrl;

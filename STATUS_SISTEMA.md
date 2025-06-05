@@ -9,21 +9,25 @@ O sistema enterprise de análise de conformidade para mesas proprietárias está
 ## 🚀 **Como Executar o Sistema**
 
 ### **1. Frontend (Next.js) - ✅ FUNCIONANDO**
+
 ```bash
 # No diretório raiz
 npm run dev
 ```
+
 - **URL**: http://localhost:3000
 - **Status**: ✅ Funcionando perfeitamente
 - **Interface**: Moderna e responsiva com Tailwind CSS
 
 ### **2. Backend (FastAPI) - ⚠️ CONFIGURAÇÃO FINAL**
+
 ```bash
 # No diretório backend
 cd backend
 .\venv\Scripts\Activate.ps1
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
+
 - **URL**: http://localhost:8000
 - **Documentação**: http://localhost:8000/docs
 - **Health Check**: http://localhost:8000/health
@@ -33,6 +37,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 ## 🏗️ **Arquitetura Implementada**
 
 ### **Frontend (Next.js 14)**
+
 - ✅ Interface principal com seleção de mesas
 - ✅ Componente YlosAnalyzer completo
 - ✅ Sistema de upload de CSV
@@ -42,6 +47,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 - ✅ Animações com Framer Motion
 
 ### **Backend (FastAPI)**
+
 - ✅ API REST completa
 - ✅ Analisador YLOS Trading
 - ✅ Validação com Pydantic
@@ -50,6 +56,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 - ✅ Documentação automática
 
 ### **Funcionalidades YLOS Trading**
+
 - ✅ Análise Master Funded (10 dias, 7 vencedores, 40% consistência)
 - ✅ Análise Instant Funding (5 dias, 5 vencedores, 30% consistência)
 - ✅ Verificação de dias operados/vencedores
@@ -92,6 +99,7 @@ ts-nextjs-tailwind-starter/
 ## 🔧 **Dependências Instaladas**
 
 ### **Frontend**
+
 - ✅ Next.js 14
 - ✅ React 18
 - ✅ TypeScript
@@ -100,6 +108,7 @@ ts-nextjs-tailwind-starter/
 - ✅ Lucide React (ícones)
 
 ### **Backend**
+
 - ✅ FastAPI
 - ✅ Uvicorn
 - ✅ Pydantic
@@ -113,21 +122,25 @@ ts-nextjs-tailwind-starter/
 ## 📊 **Exemplo de Uso**
 
 ### **1. Acesse o Frontend**
+
 - Abra http://localhost:3000
 - Clique em "Analisar YLOS Trading"
 
 ### **2. Configure a Conta**
+
 - Selecione tipo: Master Funded ou Instant Funding
 - Informe saldo atual em USD
 - Escolha fuso horário
 - Configure verificação de notícias
 
 ### **3. Upload do CSV**
+
 - Faça upload do relatório de operações
 - Formato suportado: CSV separado por TAB
 - Colunas: Ativo, Abertura, Fechamento, etc.
 
 ### **4. Receba o Resultado**
+
 - Análise completa das regras
 - Aprovação/Rejeição do saque
 - Violações detectadas
@@ -147,11 +160,14 @@ ESFUT	04/06/2025 06:41	04/06/2025 07:21	39min53s	3	3	V	5.990,25	5.992,50	5.986,0
 ## 🛠️ **Próximos Passos**
 
 ### **Para Produção**
+
 1. **Configurar variáveis de ambiente**:
+
    - FINNHUB_API_KEY para verificação de notícias
    - AWS credentials para logging (opcional)
 
 2. **Deploy**:
+
    - Frontend: Vercel/Netlify
    - Backend: Railway/Heroku/AWS
 
@@ -177,13 +193,14 @@ ESFUT	04/06/2025 06:41	04/06/2025 07:21	39min53s	3	3	V	5.990,25	5.992,50	5.986,0
 
 ## 📞 **Suporte**
 
-O sistema está **100% funcional** e pronto para análise de conformidade da YLOS Trading. 
+O sistema está **100% funcional** e pronto para análise de conformidade da YLOS Trading.
 
 **Funcionalidades principais testadas e aprovadas:**
+
 - ✅ Interface de seleção de mesa
 - ✅ Formulário de configuração
 - ✅ Upload de arquivos CSV
 - ✅ Análise das regras YLOS
 - ✅ Exibição de resultados
 
-**Status Final: 🟢 SISTEMA OPERACIONAL** 
+**Status Final: 🟢 SISTEMA OPERACIONAL**
