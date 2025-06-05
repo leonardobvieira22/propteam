@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { enterpriseLogger, type LogContext } from '@/lib/logger'
 
 interface TradeOperation {
   ativo: string
@@ -38,16 +39,13 @@ interface AnalysisResult {
   proximos_passos: string[]
 }
 
-function parseCSV(csvContent: string): TradeOperation[] {
+function parseCSV(csvContent: string, requestId: string, context?: LogContext): TradeOperation[] {
+  const parseTimer = enterpriseLogger.startPerformanceTimer('csv_parsing', { ...context, requestId })
   const lines = csvContent.trim().split('\n')
   const operations: TradeOperation[] = []
   
-  // Debug logging - temporarily enable for troubleshooting
-  console.log('🔍 CSV Debug Info:', {
-    totalLines: lines.length,
-    firstFewLines: lines.slice(0, 8).map((line, i) => `Line ${i}: "${line.substring(0, 100)}..."`),
-    csvLength: csvContent.length
-  })
+  // Initialize CSV processing logging
+  enterpriseLogger.csvProcessingStarted(requestId, csvContent.length, context)
   
   // Find the header line that contains "Ativo"
   let headerIndex = -1
@@ -66,9 +64,9 @@ function parseCSV(csvContent: string): TradeOperation[] {
           line.includes('Abertura') && 
           line.includes('Fechamento')) {
         headerIndex = i
-        detectedSeparator = sep
-        console.log('✅ Header found:', { headerIndex, detectedSeparator, columnsCount: columns.length })
-        break
+                 detectedSeparator = sep
+         enterpriseLogger.csvHeaderFound(requestId, i, sep, columns.length, context)
+         break
       }
     }
     
@@ -76,13 +74,12 @@ function parseCSV(csvContent: string): TradeOperation[] {
   }
   
   if (headerIndex === -1) {
-    console.log('❌ No header found. Searching for any line with "ESFUT"...')
-    // Fallback: look for data lines with ESFUT
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].includes('ESFUT')) {
-        console.log(`📊 Found ESFUT in line ${i}:`, lines[i].substring(0, 100))
-      }
-    }
+    enterpriseLogger.error('CSV header not found - invalid CSV format', undefined, { ...context, requestId }, {
+      csvSize: csvContent.length,
+      totalLines: lines.length,
+      searchedColumns: ['Ativo', 'Abertura', 'Fechamento']
+    })
+    parseTimer.end({ status: 'failed', reason: 'header_not_found' })
     return operations // No valid header found
   }
   
@@ -115,7 +112,10 @@ function parseCSV(csvContent: string): TradeOperation[] {
   }
   
   // Process data lines after header
-  console.log(`🔄 Processing data lines from ${headerIndex + 1} to ${lines.length - 1}`)
+  enterpriseLogger.debug(`Processing CSV data lines from ${headerIndex + 1} to ${lines.length - 1}`, { ...context, requestId })
+  
+  let processedOperations = 0
+  let skippedLines = 0
   
   for (let i = headerIndex + 1; i < lines.length; i++) {
     const line = lines[i].trim()
@@ -124,16 +124,22 @@ function parseCSV(csvContent: string): TradeOperation[] {
     // Split by detected separator
     const columns = line.split(detectedSeparator)
     
-    console.log(`📋 Line ${i} - Columns: ${columns.length}, First col: "${columns[0]}", Line preview: "${line.substring(0, 50)}..."`)
-    
     if (columns.length < 10) {
-      console.log(`⚠️ Skipping line ${i}: not enough columns (${columns.length})`)
+      enterpriseLogger.debug(`Skipping CSV line: insufficient columns`, { ...context, requestId }, {
+        lineNumber: i,
+        columnsCount: columns.length,
+        minimumRequired: 10
+      })
+      skippedLines++
       continue
     }
     
     // Skip lines that don't look like data (empty first column or doesn't start with asset name)
     if (!columns[0] || columns[0].trim() === '') {
-      console.log(`⚠️ Skipping line ${i}: empty first column`)
+      enterpriseLogger.debug(`Skipping CSV line: empty first column`, { ...context, requestId }, {
+        lineNumber: i
+      })
+      skippedLines++
       continue
     }
     
@@ -155,28 +161,42 @@ function parseCSV(csvContent: string): TradeOperation[] {
         total: parseBrazilianNumber(columns[16])
       }
       
-      // Validate that we have essential data
+            // Validate that we have essential data
       if (operation.ativo && operation.abertura && operation.fechamento) {
         operations.push(operation)
-        console.log(`✅ Added operation ${operations.length}:`, {
+        processedOperations++
+        enterpriseLogger.csvOperationParsed(requestId, processedOperations, {
           ativo: operation.ativo,
           abertura: operation.abertura,
           res_operacao: operation.res_operacao
-        })
+        }, context)
       } else {
-        console.log(`❌ Invalid operation data:`, {
+        enterpriseLogger.warn(`Invalid operation data in CSV line`, { ...context, requestId }, {
+          lineNumber: i,
           ativo: operation.ativo,
           abertura: operation.abertura,
           fechamento: operation.fechamento
         })
+        skippedLines++
       }
-          } catch (error) {
-        console.log(`❌ Error processing line ${i}:`, error)
-      }
+    } catch (error) {
+      enterpriseLogger.error(`Error processing CSV line`, error as Error, { ...context, requestId }, {
+        lineNumber: i,
+        lineContent: line.substring(0, 100)
+      })
+      skippedLines++
     }
-    
-    console.log(`🎯 Final result: ${operations.length} operations parsed`)
-    return operations
+  }
+  
+  const processingTime = parseTimer.end({ 
+    status: 'completed',
+    totalOperations: operations.length,
+    skippedLines 
+  })
+  
+  enterpriseLogger.csvProcessingCompleted(requestId, operations.length, processingTime, context)
+  
+  return operations
 }
 
 function parseDate(dateStr: string): Date {
@@ -197,7 +217,9 @@ function parseDate(dateStr: string): Date {
 function analyzeYLOSRules(
   operations: TradeOperation[], 
   contaType: 'MASTER_FUNDED' | 'INSTANT_FUNDING',
-  saldoAtual: number
+  saldoAtual: number,
+  requestId: string,
+  context?: LogContext
 ): AnalysisResult {
   const violacoes: AnalysisResult['violacoes'] = []
   const recomendacoes: string[] = []
@@ -231,12 +253,14 @@ function analyzeYLOSRules(
   // Rule 1: Minimum trading days (varies by account type)
   const minDays = contaType === 'MASTER_FUNDED' ? 10 : 5
   if (diasOperados < minDays) {
-    violacoes.push({
+    const violation = {
       codigo: 'DIAS_MINIMOS',
       titulo: 'Dias de operação insuficientes',
       descricao: `São necessários pelo menos ${minDays} dias de operação. Você operou apenas ${diasOperados} dias.`,
-      severidade: 'CRITICAL'
-    })
+      severidade: 'CRITICAL' as const
+    }
+    violacoes.push(violation)
+    enterpriseLogger.ylosRuleViolation(requestId, 'DIAS_MINIMOS', 'CRITICAL', violation.descricao, context)
   }
   
   // Rule 2: Consistency rule (40% for Master Funded, 30% for Instant Funding)
@@ -330,15 +354,23 @@ function analyzeYLOSRules(
 }
 
 export async function POST(request: NextRequest) {
+  const requestTimer = enterpriseLogger.startPerformanceTimer('ylos_analysis_request')
+  const requestId = enterpriseLogger.generateRequestId()
+  
+  const requestContext: LogContext = {
+    requestId,
+    component: 'ylos_analysis_api',
+    operation: 'analyze_trading_data'
+  }
+  
   try {
-    const startTime = Date.now()
-    
-    // Log the request start (disabled for production ESLint)
-    // console.log('📊 YLOS Analysis API - Request started', {
-    //   timestamp: new Date().toISOString(),
-    //   method: request.method,
-    //   url: request.url
-    // })
+
+    enterpriseLogger.info('YLOS Trading analysis request initiated', requestContext, {
+      method: request.method,
+      url: request.url,
+      userAgent: request.headers.get('user-agent'),
+      requestPhase: 'initialization'
+    })
     
     const body = await request.json()
     
@@ -365,13 +397,15 @@ export async function POST(request: NextRequest) {
     // })
 
     // Parse CSV data
-    const operations = parseCSV(body.csv_content)
-    console.log('📋 CSV parsed successfully', {
-      total_operations: operations.length,
-      sample_operation: operations[0] || null
-    })
+    const operations = parseCSV(body.csv_content, requestId, requestContext)
 
     if (operations.length === 0) {
+      enterpriseLogger.warn('No valid operations found in CSV', requestContext, {
+        csvSize: body.csv_content.length,
+        requestPhase: 'validation_failed'
+      })
+      requestTimer.end({ status: 'failed', reason: 'no_operations_found' }, { statusCode: 400 })
+      
       return NextResponse.json(
         { detail: 'Nenhuma operação válida encontrada no CSV' },
         { status: 400 }
@@ -379,29 +413,45 @@ export async function POST(request: NextRequest) {
     }
 
     // Perform YLOS analysis
-    const result = analyzeYLOSRules(operations, body.conta_type, body.saldo_atual)
+    const analysisTimer = enterpriseLogger.startPerformanceTimer('ylos_rules_analysis', requestContext)
+    enterpriseLogger.ylosAnalysisStarted(requestId, operations.length, body.conta_type, requestContext)
     
-    const _processingTime = Date.now() - startTime
-    // console.log('✅ Analysis completed successfully', {
-    //   processing_time_ms: processingTime,
-    //   total_operations: result.total_operacoes,
-    //   days_traded: result.dias_operados,
-    //   approved: result.aprovado,
-    //   violations_count: result.violacoes.length
-    // })
+    const result = analyzeYLOSRules(operations, body.conta_type, body.saldo_atual, requestId, requestContext)
+    
+    const analysisTime = analysisTimer.end({ 
+      status: 'completed',
+      operationsAnalyzed: operations.length,
+      violationsFound: result.violacoes.length 
+    })
+    
+    enterpriseLogger.ylosAnalysisCompleted(requestId, {
+      approved: result.aprovado,
+      totalOperations: result.total_operacoes,
+      daysTraded: result.dias_operados,
+      violationsCount: result.violacoes.length
+    }, analysisTime, requestContext)
+
+    const _totalTime = requestTimer.end({ 
+      status: 'success',
+      operationsProcessed: result.total_operacoes,
+      analysisResult: result.aprovado ? 'approved' : 'rejected'
+    }, { statusCode: 200 })
 
     return NextResponse.json(result)
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    const _errorDetails = {
-      error: errorMessage,
-      stack: error instanceof Error ? error.stack : null,
-      timestamp: new Date().toISOString(),
-      endpoint: '/api/ylos/analyze'
-    }
+    const errorInstance = error instanceof Error ? error : new Error('Unknown error')
     
-    // console.error('❌ API Error in YLOS Analysis:', errorDetails)
+    enterpriseLogger.critical('Critical error in YLOS Trading analysis', errorInstance, requestContext, {
+      endpoint: '/api/ylos/analyze',
+      requestPhase: 'processing_error'
+    })
+    
+    requestTimer.end({ 
+      status: 'error',
+      errorType: errorInstance.name,
+      errorMessage: errorInstance.message 
+    }, { statusCode: 500 })
     
     return NextResponse.json(
       { 
