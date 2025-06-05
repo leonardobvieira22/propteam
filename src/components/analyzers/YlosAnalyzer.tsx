@@ -8,6 +8,8 @@ import {
   BarChart3,
   Calendar,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   Clock,
   DollarSign,
   ExternalLink,
@@ -71,6 +73,29 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     null,
   );
   const [error, setError] = useState<string>('');
+  const [expandedViolations, setExpandedViolations] = useState<Set<string>>(new Set());
+
+  const toggleViolationDetails = (codigo: string) => {
+    setExpandedViolations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(codigo)) {
+        newSet.delete(codigo);
+      } else {
+        newSet.add(codigo);
+      }
+      return newSet;
+    });
+  };
+
+  const formatOperation = (op: any) => {
+    return {
+      ativo: op.ativo || 'N/A',
+      abertura: op.abertura || 'N/A',
+      fechamento: op.fechamento || 'N/A',
+      resultado: op.res_operacao ? `$${op.res_operacao.toFixed(2)}` : 'N/A',
+      lado: op.lado || 'N/A'
+    };
+  };
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -866,17 +891,88 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                   key={index}
                   className='border-l-4 border-red-500 bg-red-50 p-4'
                 >
-                  <div className='flex items-start space-x-3'>
-                    <XCircle className='mt-0.5 h-5 w-5 text-red-500' />
-                    <div>
-                      <h4 className='font-medium text-red-900'>
-                        {violacao.titulo}
-                      </h4>
-                      <p className='text-sm text-red-700'>
-                        {violacao.descricao}
-                      </p>
+                  <div className='flex items-start justify-between'>
+                    <div className='flex items-start space-x-3'>
+                      <XCircle className='mt-0.5 h-5 w-5 text-red-500' />
+                      <div>
+                        <h4 className='font-medium text-red-900'>
+                          {violacao.titulo}
+                        </h4>
+                        <p className='text-sm text-red-700'>
+                          {violacao.descricao}
+                        </p>
+                      </div>
                     </div>
+                    
+                    {/* Botão Ver Detalhes se há operações afetadas */}
+                    {violacao.operacoes_afetadas && Array.isArray(violacao.operacoes_afetadas) && violacao.operacoes_afetadas.length > 0 && (
+                      <button
+                        onClick={() => toggleViolationDetails(violacao.codigo)}
+                        className='flex items-center space-x-1 text-sm text-red-600 hover:text-red-800 transition-colors'
+                      >
+                        <span>Ver Detalhes</span>
+                        {expandedViolations.has(violacao.codigo) ? (
+                          <ChevronUp className='h-4 w-4' />
+                        ) : (
+                          <ChevronDown className='h-4 w-4' />
+                        )}
+                      </button>
+                    )}
                   </div>
+                  
+                  {/* Detalhes expandidos das operações */}
+                  {expandedViolations.has(violacao.codigo) && violacao.operacoes_afetadas && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className='mt-4 border-t border-red-200 pt-4'
+                    >
+                      <h5 className='mb-3 font-medium text-red-900'>
+                        Operações Afetadas ({violacao.operacoes_afetadas.length}):
+                      </h5>
+                      <div className='max-h-60 overflow-y-auto'>
+                        <div className='space-y-2'>
+                          {violacao.operacoes_afetadas.map((op: any, opIndex: number) => {
+                            const formattedOp = formatOperation(op);
+                            return (
+                              <div
+                                key={opIndex}
+                                className='rounded-lg bg-white border border-red-200 p-3 text-xs'
+                              >
+                                <div className='grid grid-cols-2 gap-2 md:grid-cols-5'>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Ativo:</span>
+                                    <div className='text-red-800'>{formattedOp.ativo}</div>
+                                  </div>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Abertura:</span>
+                                    <div className='text-red-800'>{formattedOp.abertura}</div>
+                                  </div>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Fechamento:</span>
+                                    <div className='text-red-800'>{formattedOp.fechamento}</div>
+                                  </div>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Resultado:</span>
+                                    <div className={`font-medium ${
+                                      op.res_operacao >= 0 ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                      {formattedOp.resultado}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Lado:</span>
+                                    <div className='text-red-800'>{formattedOp.lado}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
               ))}
 
@@ -885,17 +981,88 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                   key={index}
                   className='border-l-4 border-yellow-500 bg-yellow-50 p-4'
                 >
-                  <div className='flex items-start space-x-3'>
-                    <AlertTriangle className='mt-0.5 h-5 w-5 text-yellow-500' />
-                    <div>
-                      <h4 className='font-medium text-yellow-900'>
-                        {violacao.titulo}
-                      </h4>
-                      <p className='text-sm text-yellow-700'>
-                        {violacao.descricao}
-                      </p>
+                  <div className='flex items-start justify-between'>
+                    <div className='flex items-start space-x-3'>
+                      <AlertTriangle className='mt-0.5 h-5 w-5 text-yellow-500' />
+                      <div>
+                        <h4 className='font-medium text-yellow-900'>
+                          {violacao.titulo}
+                        </h4>
+                        <p className='text-sm text-yellow-700'>
+                          {violacao.descricao}
+                        </p>
+                      </div>
                     </div>
+                    
+                    {/* Botão Ver Detalhes se há operações afetadas */}
+                    {violacao.operacoes_afetadas && Array.isArray(violacao.operacoes_afetadas) && violacao.operacoes_afetadas.length > 0 && (
+                      <button
+                        onClick={() => toggleViolationDetails(violacao.codigo)}
+                        className='flex items-center space-x-1 text-sm text-yellow-600 hover:text-yellow-800 transition-colors'
+                      >
+                        <span>Ver Detalhes</span>
+                        {expandedViolations.has(violacao.codigo) ? (
+                          <ChevronUp className='h-4 w-4' />
+                        ) : (
+                          <ChevronDown className='h-4 w-4' />
+                        )}
+                      </button>
+                    )}
                   </div>
+                  
+                  {/* Detalhes expandidos das operações */}
+                  {expandedViolations.has(violacao.codigo) && violacao.operacoes_afetadas && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className='mt-4 border-t border-yellow-200 pt-4'
+                    >
+                      <h5 className='mb-3 font-medium text-yellow-900'>
+                        Operações Afetadas ({violacao.operacoes_afetadas.length}):
+                      </h5>
+                      <div className='max-h-60 overflow-y-auto'>
+                        <div className='space-y-2'>
+                          {violacao.operacoes_afetadas.map((op: any, opIndex: number) => {
+                            const formattedOp = formatOperation(op);
+                            return (
+                              <div
+                                key={opIndex}
+                                className='rounded-lg bg-white border border-yellow-200 p-3 text-xs'
+                              >
+                                <div className='grid grid-cols-2 gap-2 md:grid-cols-5'>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Ativo:</span>
+                                    <div className='text-yellow-800'>{formattedOp.ativo}</div>
+                                  </div>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Abertura:</span>
+                                    <div className='text-yellow-800'>{formattedOp.abertura}</div>
+                                  </div>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Fechamento:</span>
+                                    <div className='text-yellow-800'>{formattedOp.fechamento}</div>
+                                  </div>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Resultado:</span>
+                                    <div className={`font-medium ${
+                                      op.res_operacao >= 0 ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                      {formattedOp.resultado}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <span className='font-medium text-gray-600'>Lado:</span>
+                                    <div className='text-yellow-800'>{formattedOp.lado}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
               ))}
             </div>

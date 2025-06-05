@@ -468,7 +468,7 @@ function analyzeYLOSRules(
       // 9:30 AM NY = 14:30 UTC (during standard time) or 13:30 UTC (during daylight time)
       // We'll check for operations between 9:25-9:35 AM NY time to be safe
 
-      const checkTimeWindow = (date: Date) => {
+      const checkTimeWindow = (date: Date, operationType: string) => {
         const hour = date.getHours();
         const minute = date.getMinutes();
         const timeInMinutes = hour * 60 + minute;
@@ -479,17 +479,37 @@ function analyzeYLOSRules(
         const nyOpeningWindow1 = timeInMinutes >= 625 && timeInMinutes <= 640; // 10:25-10:40 AM
         const nyOpeningWindow2 = timeInMinutes >= 685 && timeInMinutes <= 700; // 11:25-11:40 AM
 
-        return nyOpeningWindow1 || nyOpeningWindow2;
+        const isInWindow = nyOpeningWindow1 || nyOpeningWindow2;
+        
+        if (isInWindow) {
+          enterpriseLogger.debug(
+            `NY Opening window detected`,
+            { ...context, requestId },
+            {
+              ativo: op.ativo,
+              operationType,
+              time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+              timeInMinutes,
+              window1: nyOpeningWindow1,
+              window2: nyOpeningWindow2,
+            },
+          );
+        }
+
+        return isInWindow;
       };
 
-      return checkTimeWindow(abertura) || checkTimeWindow(fechamento);
+      const aberturaViolation = checkTimeWindow(abertura, 'abertura');
+      const fechamentoViolation = checkTimeWindow(fechamento, 'fechamento');
+      
+      return aberturaViolation || fechamentoViolation;
     });
 
     if (nyOpeningOperations.length > 0) {
       violacoes.push({
         codigo: 'ABERTURA_NY',
         titulo: 'Operações durante abertura NY detectadas',
-        descricao: `Detectadas ${nyOpeningOperations.length} operações durante abertura do mercado NY (9:30 AM). PROIBIDO em Master Funded.`,
+        descricao: `Detectadas ${nyOpeningOperations.length} operações durante abertura do mercado NY (9:30 AM). PROIBIDO em Master Funded. Janelas: 10:25-10:40 e 11:25-11:40 (horário Brasil).`,
         severidade: 'CRITICAL',
         operacoes_afetadas: nyOpeningOperations,
       });
@@ -511,7 +531,7 @@ function analyzeYLOSRules(
       const abertura = parseDate(op.abertura);
       const fechamento = parseDate(op.fechamento);
 
-      const checkNewsTime = (date: Date) => {
+      const checkNewsTime = (date: Date, operationType: string) => {
         const hour = date.getHours();
         const minute = date.getMinutes();
 
@@ -525,17 +545,38 @@ function analyzeYLOSRules(
         const newsWindow2 = timeInMinutes >= 625 && timeInMinutes <= 635; // 10:25-10:35 AM
         const newsWindow3 = timeInMinutes >= 715 && timeInMinutes <= 725; // 11:55-12:05 PM
 
-        return newsWindow1 || newsWindow2 || newsWindow3;
+        const isInNewsWindow = newsWindow1 || newsWindow2 || newsWindow3;
+
+        if (isInNewsWindow) {
+          enterpriseLogger.debug(
+            `News time window detected`,
+            { ...context, requestId },
+            {
+              ativo: op.ativo,
+              operationType,
+              time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
+              timeInMinutes,
+              window1: newsWindow1,
+              window2: newsWindow2,
+              window3: newsWindow3,
+            },
+          );
+        }
+
+        return isInNewsWindow;
       };
 
-      return checkNewsTime(abertura) || checkNewsTime(fechamento);
+      const aberturaViolation = checkNewsTime(abertura, 'abertura');
+      const fechamentoViolation = checkNewsTime(fechamento, 'fechamento');
+      
+      return aberturaViolation || fechamentoViolation;
     });
 
     if (newsTimesOperations.length > 0) {
       violacoes.push({
         codigo: 'OPERACAO_NOTICIAS',
         titulo: 'Operações durante notícias detectadas',
-        descricao: `Detectadas ${newsTimesOperations.length} operações durante horários típicos de notícias de alto impacto. PROIBIDO estar posicionado durante notícias em Master Funded.`,
+        descricao: `Detectadas ${newsTimesOperations.length} operações durante horários típicos de notícias de alto impacto. PROIBIDO estar posicionado durante notícias em Master Funded. Janelas: 9:25-9:35, 10:25-10:35 e 11:55-12:05 (horário Brasil).`,
         severidade: 'CRITICAL',
         operacoes_afetadas: newsTimesOperations,
       });
