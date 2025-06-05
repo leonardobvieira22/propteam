@@ -421,6 +421,23 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     const minDailyWin = formData.contaType === 'MASTER_FUNDED' ? 50 : 200;
     const maxDayPercentage = formData.contaType === 'MASTER_FUNDED' ? 40 : 30;
 
+    // Calculate daily profit limit based on withdrawal threshold and consistency rule
+    const withdrawalThresholds: Record<number, number> = {
+      25000: 1600, // 25K account
+      50000: 2600, // 50K account
+      100000: 3100, // 100K account
+      150000: 5100, // 150K account (estimated)
+      250000: 6600, // 250K account (estimated)
+      300000: 7600, // 300K account (estimated)
+    };
+
+    const saldoAtualNum = parseFloat(formData.saldoAtual);
+    const withdrawalThreshold =
+      withdrawalThresholds[saldoAtualNum] || saldoAtualNum * 0.052;
+    const consistencyDecimal =
+      formData.contaType === 'MASTER_FUNDED' ? 0.4 : 0.3;
+    const dailyProfitLimit = withdrawalThreshold * consistencyDecimal;
+
     // Regra de Consistência oficial: % do melhor dia vs lucro total
     const bestDayPercentage =
       analysisResult.lucro_total > 0
@@ -481,7 +498,22 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         severity:
           bestDayPercentage <= maxDayPercentage ? 'success' : 'critical',
       },
-
+      {
+        code: 'LIMITE_DIARIO_CONSISTENCIA',
+        title: 'Limite Diário (Regra Consistência)',
+        description: `Máx. $${dailyProfitLimit.toFixed(0)} por dia (meta colchão $${withdrawalThreshold.toFixed(0)} x ${consistencyDecimal * 100}%)`,
+        current: `$${analysisResult.maior_lucro_dia.toFixed(2)}`,
+        required: `$${dailyProfitLimit.toFixed(2)}`,
+        status:
+          analysisResult.maior_lucro_dia <= dailyProfitLimit
+            ? 'approved'
+            : 'rejected',
+        icon: DollarSign,
+        severity:
+          analysisResult.maior_lucro_dia <= dailyProfitLimit
+            ? 'success'
+            : 'critical',
+      },
       {
         code: 'OVERNIGHT',
         title: 'Posições Overnight',

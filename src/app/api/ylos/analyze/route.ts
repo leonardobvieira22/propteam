@@ -373,7 +373,42 @@ function analyzeYLOSRules(
     }
   }
 
-  // Rule 4: Check for DCA strategy (maximum 3 averagings per operation)
+  // Rule 4: Daily profit limit based on consistency rule and withdrawal threshold
+  // Based on official YLOS email: "Valor mínimo de saque x 0,40 = Lucro máximo diário permitido"
+  const withdrawalThresholds: Record<number, number> = {
+    25000: 1600, // 25K account
+    50000: 2600, // 50K account
+    100000: 3100, // 100K account
+    150000: 5100, // 150K account (estimated)
+    250000: 6600, // 250K account (estimated)
+    300000: 7600, // 300K account (estimated)
+  };
+
+  const withdrawalThreshold =
+    withdrawalThresholds[saldoAtual] || saldoAtual * 0.052; // fallback to ~5.2% if not found
+  const consistencyPercentage = contaType === 'MASTER_FUNDED' ? 0.4 : 0.3;
+  const dailyProfitLimit = withdrawalThreshold * consistencyPercentage;
+
+  resultsByDay.forEach((result, day) => {
+    if (result > dailyProfitLimit) {
+      violacoes.push({
+        codigo: 'LIMITE_DIARIO_CONSISTENCIA',
+        titulo: 'Limite diário de lucro excedido (Regra Consistência)',
+        descricao: `No dia ${day}, o lucro de $${result.toFixed(2)} excedeu o limite diário de $${dailyProfitLimit.toFixed(2)} (baseado na regra de consistência: meta colchão $${withdrawalThreshold.toFixed(2)} x ${consistencyPercentage * 100}%).`,
+        severidade: 'CRITICAL',
+        valor_impacto: result - dailyProfitLimit,
+      });
+      enterpriseLogger.ylosRuleViolation(
+        requestId,
+        'LIMITE_DIARIO_CONSISTENCIA',
+        'CRITICAL',
+        `Lucro diário de $${result.toFixed(2)} excedeu limite de $${dailyProfitLimit.toFixed(2)}`,
+        context,
+      );
+    }
+  });
+
+  // Rule 5: Check for DCA strategy (maximum 3 averagings per operation)
   const dcaOperations = operations.filter((op) => op.medio === 'Sim');
   const dcaDays = new Set(
     dcaOperations.map(
@@ -398,7 +433,7 @@ function analyzeYLOSRules(
     );
   }
 
-  // Rule 5: Check for overnight positions (prohibited in Master Funded)
+  // Rule 6: Check for overnight positions (prohibited in Master Funded)
   const overnightOperations = operations.filter((op) => {
     const abertura = parseDate(op.abertura);
     const fechamento = parseDate(op.fechamento);
@@ -423,7 +458,7 @@ function analyzeYLOSRules(
     );
   }
 
-  // Rule 6: Check for operations during NY market opening (9:30 AM NY time - prohibited for Master Funded)
+  // Rule 7: Check for operations during NY market opening (9:30 AM NY time - prohibited for Master Funded)
   if (contaType === 'MASTER_FUNDED') {
     const nyOpeningOperations = operations.filter((op) => {
       const abertura = parseDate(op.abertura);
@@ -468,7 +503,7 @@ function analyzeYLOSRules(
     }
   }
 
-  // Rule 7: Check for operations during news events (prohibited for Master Funded)
+  // Rule 8: Check for operations during news events (prohibited for Master Funded)
   // Note: This is a simplified check based on common news times
   // For a complete implementation, you would need an economic calendar API
   if (contaType === 'MASTER_FUNDED') {
@@ -583,6 +618,16 @@ function analyzeYLOSRules(
       if (criticalViolations.some((v) => v.codigo === 'OPERACAO_NOTICIAS')) {
         recomendacoes.push(
           'CRÍTICO: Não opere durante horários de notícias de alto impacto - proibido em Master Funded.',
+        );
+      }
+
+      if (
+        criticalViolations.some(
+          (v) => v.codigo === 'LIMITE_DIARIO_CONSISTENCIA',
+        )
+      ) {
+        recomendacoes.push(
+          `CRÍTICO: Respeite o limite diário baseado na regra de consistência ($${dailyProfitLimit.toFixed(2)} para sua conta).`,
         );
       }
     }
