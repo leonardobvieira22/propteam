@@ -109,3 +109,96 @@
 **Versão**: 1.0.0
 **Status**: ✅ PRONTO PARA DEPLOY
 **Repositório**: https://github.com/leonardobvieira22/propteam
+
+## 🚀 Correções Realizadas para Deploy
+
+### Problemas Identificados e Soluções:
+
+#### 1. **Conflito de Dependências - prettier-plugin-tailwindcss**
+
+**Erro**: `ERESOLVE could not resolve prettier-plugin-tailwindcss@0.5.14 vs prettier@2.8.8`
+
+**Solução**:
+
+- ✅ Atualizado `prettier` de `^2.8.8` para `^3.0.0`
+- ✅ Atualizado `prettier-plugin-tailwindcss` para `^0.5.14`
+- ✅ Removido package-lock.json e reinstalado dependências
+
+#### 2. **Vulnerabilidades de Segurança**
+
+**Erro**: 5 vulnerabilidades (1 low, 4 high) em semver e Next.js
+
+**Solução**:
+
+- ✅ Atualizado `Next.js` de `^14.2.23` para `^15.2.2`
+- ✅ Atualizado `@commitlint/cli` de `^16.3.0` para `^19.8.1`
+- ✅ Atualizado `@commitlint/config-conventional` para `^19.8.1`
+- ✅ Todas as vulnerabilidades removidas
+
+#### 3. **Erro do Husky no Ambiente CI/CD**
+
+**Erro**: `sh: line 1: husky: command not found` durante `npm ci`
+
+**Solução**:
+
+- ✅ Removido `husky` das dependências
+- ✅ Removido script `prepare` do package.json
+- ✅ Hooks do Git mantidos no `.husky/` para desenvolvimento local
+
+#### 4. **Configuração Next.js 15**
+
+**Warnings**: Chaves não reconhecidas no next.config.js
+
+**Solução**:
+
+- ✅ Removido `swcMinify` (deprecated no Next.js 15)
+- ✅ Atualizado `experimental.serverComponentsExternalPackages` para `serverExternalPackages`
+- ✅ Mantido `output: 'standalone'` para AWS Amplify
+
+### 📋 Verificações Realizadas:
+
+✅ **TypeScript**: Sem erros de compilação  
+✅ **ESLint**: Warnings corrigidos  
+✅ **Build Local**: Compilação bem-sucedida  
+✅ **Dependências**: Todas compatíveis  
+✅ **Segurança**: Vulnerabilidades removidas
+
+### 🔧 Configurações AWS Amplify:
+
+```yaml
+# amplify.yml (já configurado)
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
+```
+
+### 📊 Status Atual:
+
+- **Commit**: `241a695` - "fix: remove husky dependency to fix AWS Amplify build"
+- **Branch**: `main`
+- **Deploy**: Pronto para re-deploy no AWS Amplify
+
+### 🎯 Próximos Passos:
+
+1. AWS Amplify deve detectar automaticamente o novo commit
+2. Build deve funcionar sem erros
+3. Sistema ficará disponível em produção
+
+---
+
+**Última atualização**: 05/06/2025 - 17:47 UTC  
+**Desenvolvedor**: Mesa Prop Trading Team
