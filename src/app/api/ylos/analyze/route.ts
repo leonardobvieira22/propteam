@@ -42,16 +42,47 @@ function parseCSV(csvContent: string): TradeOperation[] {
   const lines = csvContent.trim().split('\n')
   const operations: TradeOperation[] = []
   
+  // Debug logging - temporarily enable for troubleshooting
+  console.log('🔍 CSV Debug Info:', {
+    totalLines: lines.length,
+    firstFewLines: lines.slice(0, 8).map((line, i) => `Line ${i}: "${line.substring(0, 100)}..."`),
+    csvLength: csvContent.length
+  })
+  
   // Find the header line that contains "Ativo"
   let headerIndex = -1
+  let detectedSeparator = '\t'
+  
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('Ativo') && lines[i].includes('Abertura') && lines[i].includes('Fechamento')) {
-      headerIndex = i
-      break
+    const line = lines[i]
+    
+    // Try different separators to find the header
+    const separators = ['\t', ';', ',', '|']
+    
+    for (const sep of separators) {
+      const columns = line.split(sep)
+      if (columns.length > 10 && 
+          line.includes('Ativo') && 
+          line.includes('Abertura') && 
+          line.includes('Fechamento')) {
+        headerIndex = i
+        detectedSeparator = sep
+        console.log('✅ Header found:', { headerIndex, detectedSeparator, columnsCount: columns.length })
+        break
+      }
     }
+    
+    if (headerIndex !== -1) break
   }
   
   if (headerIndex === -1) {
+    console.log('❌ No header found. Searching for any line with "ESFUT"...')
+    // Fallback: look for data lines with ESFUT
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('ESFUT')) {
+        console.log(`📊 Found ESFUT in line ${i}:`, lines[i].substring(0, 100))
+      }
+    }
     return operations // No valid header found
   }
   
@@ -84,16 +115,27 @@ function parseCSV(csvContent: string): TradeOperation[] {
   }
   
   // Process data lines after header
+  console.log(`🔄 Processing data lines from ${headerIndex + 1} to ${lines.length - 1}`)
+  
   for (let i = headerIndex + 1; i < lines.length; i++) {
     const line = lines[i].trim()
     if (!line) continue
     
-    // Split by tab character
-    const columns = line.split('\t')
-    if (columns.length < 17) continue
+    // Split by detected separator
+    const columns = line.split(detectedSeparator)
+    
+    console.log(`📋 Line ${i} - Columns: ${columns.length}, First col: "${columns[0]}", Line preview: "${line.substring(0, 50)}..."`)
+    
+    if (columns.length < 10) {
+      console.log(`⚠️ Skipping line ${i}: not enough columns (${columns.length})`)
+      continue
+    }
     
     // Skip lines that don't look like data (empty first column or doesn't start with asset name)
-    if (!columns[0] || columns[0].trim() === '') continue
+    if (!columns[0] || columns[0].trim() === '') {
+      console.log(`⚠️ Skipping line ${i}: empty first column`)
+      continue
+    }
     
     try {
       const operation: TradeOperation = {
@@ -116,13 +158,25 @@ function parseCSV(csvContent: string): TradeOperation[] {
       // Validate that we have essential data
       if (operation.ativo && operation.abertura && operation.fechamento) {
         operations.push(operation)
+        console.log(`✅ Added operation ${operations.length}:`, {
+          ativo: operation.ativo,
+          abertura: operation.abertura,
+          res_operacao: operation.res_operacao
+        })
+      } else {
+        console.log(`❌ Invalid operation data:`, {
+          ativo: operation.ativo,
+          abertura: operation.abertura,
+          fechamento: operation.fechamento
+        })
       }
-    } catch (error) {
-      // console.warn(`Erro ao processar linha ${i + 1}: ${error}`)
+          } catch (error) {
+        console.log(`❌ Error processing line ${i}:`, error)
+      }
     }
-  }
-  
-  return operations
+    
+    console.log(`🎯 Final result: ${operations.length} operations parsed`)
+    return operations
 }
 
 function parseDate(dateStr: string): Date {
@@ -312,10 +366,10 @@ export async function POST(request: NextRequest) {
 
     // Parse CSV data
     const operations = parseCSV(body.csv_content)
-    // console.log('📋 CSV parsed successfully', {
-    //   total_operations: operations.length,
-    //   sample_operation: operations[0] || null
-    // })
+    console.log('📋 CSV parsed successfully', {
+      total_operations: operations.length,
+      sample_operation: operations[0] || null
+    })
 
     if (operations.length === 0) {
       return NextResponse.json(
