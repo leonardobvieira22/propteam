@@ -444,6 +444,97 @@ function analyzeYLOSRules(
     );
   }
 
+  // Rule 7: Check for operations during NY market opening (9:30 AM NY time - prohibited for Master Funded)
+  if (contaType === 'MASTER_FUNDED') {
+    const nyOpeningOperations = operations.filter((op) => {
+      const abertura = parseDate(op.abertura);
+      const fechamento = parseDate(op.fechamento);
+
+      // Convert to NY time (assuming the times in CSV are in the timezone specified by user)
+      // 9:30 AM NY = 14:30 UTC (during standard time) or 13:30 UTC (during daylight time)
+      // We'll check for operations between 9:25-9:35 AM NY time to be safe
+
+      const checkTimeWindow = (date: Date) => {
+        const hour = date.getHours();
+        const minute = date.getMinutes();
+        const timeInMinutes = hour * 60 + minute;
+
+        // Convert based on Brazil time (most common for YLOS users)
+        // 9:30 AM NY = 11:30 AM Brazil (during NY standard time) or 10:30 AM Brazil (during NY daylight time)
+        // We'll check for the most restrictive window: 10:25-10:40 AM and 11:25-11:40 AM Brazil time
+        const nyOpeningWindow1 = timeInMinutes >= 625 && timeInMinutes <= 640; // 10:25-10:40 AM
+        const nyOpeningWindow2 = timeInMinutes >= 685 && timeInMinutes <= 700; // 11:25-11:40 AM
+
+        return nyOpeningWindow1 || nyOpeningWindow2;
+      };
+
+      return checkTimeWindow(abertura) || checkTimeWindow(fechamento);
+    });
+
+    if (nyOpeningOperations.length > 0) {
+      violacoes.push({
+        codigo: 'ABERTURA_NY',
+        titulo: 'Operações durante abertura NY detectadas',
+        descricao: `Detectadas ${nyOpeningOperations.length} operações durante abertura do mercado NY (9:30 AM). PROIBIDO em Master Funded.`,
+        severidade: 'CRITICAL',
+        operacoes_afetadas: nyOpeningOperations,
+      });
+      enterpriseLogger.ylosRuleViolation(
+        requestId,
+        'ABERTURA_NY',
+        'CRITICAL',
+        `${nyOpeningOperations.length} operações durante abertura NY`,
+        context,
+      );
+    }
+  }
+
+  // Rule 8: Check for operations during news events (prohibited for Master Funded)
+  // Note: This is a simplified check based on common news times
+  // For a complete implementation, you would need an economic calendar API
+  if (contaType === 'MASTER_FUNDED') {
+    const newsTimesOperations = operations.filter((op) => {
+      const abertura = parseDate(op.abertura);
+      const fechamento = parseDate(op.fechamento);
+
+      const checkNewsTime = (date: Date) => {
+        const hour = date.getHours();
+        const minute = date.getMinutes();
+
+        // Common high-impact news times (Brazil timezone):
+        // 8:30 AM NY = 10:30 AM Brazil (during NY standard) or 9:30 AM Brazil (during NY daylight)
+        // 10:00 AM NY = 12:00 PM Brazil (during NY standard) or 11:00 AM Brazil (during NY daylight)
+        // We'll check around these times: 9:25-9:35 AM, 10:25-10:35 AM, 11:55-12:05 PM Brazil time
+
+        const timeInMinutes = hour * 60 + minute;
+        const newsWindow1 = timeInMinutes >= 565 && timeInMinutes <= 575; // 9:25-9:35 AM
+        const newsWindow2 = timeInMinutes >= 625 && timeInMinutes <= 635; // 10:25-10:35 AM
+        const newsWindow3 = timeInMinutes >= 715 && timeInMinutes <= 725; // 11:55-12:05 PM
+
+        return newsWindow1 || newsWindow2 || newsWindow3;
+      };
+
+      return checkNewsTime(abertura) || checkNewsTime(fechamento);
+    });
+
+    if (newsTimesOperations.length > 0) {
+      violacoes.push({
+        codigo: 'OPERACAO_NOTICIAS',
+        titulo: 'Operações durante notícias detectadas',
+        descricao: `Detectadas ${newsTimesOperations.length} operações durante horários típicos de notícias de alto impacto. PROIBIDO estar posicionado durante notícias em Master Funded.`,
+        severidade: 'CRITICAL',
+        operacoes_afetadas: newsTimesOperations,
+      });
+      enterpriseLogger.ylosRuleViolation(
+        requestId,
+        'OPERACAO_NOTICIAS',
+        'CRITICAL',
+        `${newsTimesOperations.length} operações durante notícias`,
+        context,
+      );
+    }
+  }
+
   // Generate professional recommendations based on YLOS official rules
   const criticalViolations = violacoes.filter(
     (v) => v.severidade === 'CRITICAL',
@@ -501,6 +592,18 @@ function analyzeYLOSRules(
       if (criticalViolations.some((v) => v.codigo === 'OVERNIGHT')) {
         recomendacoes.push(
           'Elimine completamente operações overnight - proibidas em Master Funded.',
+        );
+      }
+
+      if (criticalViolations.some((v) => v.codigo === 'ABERTURA_NY')) {
+        recomendacoes.push(
+          'CRÍTICO: Evite operações durante abertura NY (9:30 AM) - proibido em Master Funded.',
+        );
+      }
+
+      if (criticalViolations.some((v) => v.codigo === 'OPERACAO_NOTICIAS')) {
+        recomendacoes.push(
+          'CRÍTICO: Não opere durante horários de notícias de alto impacto - proibido em Master Funded.',
         );
       }
     }

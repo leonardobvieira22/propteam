@@ -533,6 +533,52 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           ? 'success'
           : 'warning',
       },
+      {
+        code: 'ABERTURA_NY',
+        title: 'Abertura Mercado NY',
+        description:
+          formData.contaType === 'MASTER_FUNDED'
+            ? 'PROIBIDO operar durante abertura NY (9:30 AM)'
+            : 'Verificação de operações durante abertura NY',
+        current: violacoes.some((v) => v.codigo === 'ABERTURA_NY')
+          ? 'Detectadas'
+          : 'Nenhuma',
+        required: 'Nenhuma',
+        status: !violacoes.some((v) => v.codigo === 'ABERTURA_NY')
+          ? 'approved'
+          : formData.contaType === 'MASTER_FUNDED'
+            ? 'rejected'
+            : 'warning',
+        icon: Clock,
+        severity: !violacoes.some((v) => v.codigo === 'ABERTURA_NY')
+          ? 'success'
+          : formData.contaType === 'MASTER_FUNDED'
+            ? 'critical'
+            : 'warning',
+      },
+      {
+        code: 'OPERACAO_NOTICIAS',
+        title: 'Operações Durante Notícias',
+        description:
+          formData.contaType === 'MASTER_FUNDED'
+            ? 'PROIBIDO estar posicionado durante notícias'
+            : 'Verificação de operações durante notícias',
+        current: violacoes.some((v) => v.codigo === 'OPERACAO_NOTICIAS')
+          ? 'Detectadas'
+          : 'Nenhuma',
+        required: 'Nenhuma',
+        status: !violacoes.some((v) => v.codigo === 'OPERACAO_NOTICIAS')
+          ? 'approved'
+          : formData.contaType === 'MASTER_FUNDED'
+            ? 'rejected'
+            : 'warning',
+        icon: AlertTriangle,
+        severity: !violacoes.some((v) => v.codigo === 'OPERACAO_NOTICIAS')
+          ? 'success'
+          : formData.contaType === 'MASTER_FUNDED'
+            ? 'critical'
+            : 'warning',
+      },
     ];
 
     return (
