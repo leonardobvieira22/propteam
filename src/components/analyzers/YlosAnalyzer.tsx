@@ -102,7 +102,9 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       abertura: op.abertura || 'N/A',
       fechamento: op.fechamento || 'N/A',
       resultado: `$${op.res_operacao.toFixed(2)}`,
-      lado: op.lado || 'N/A'
+      lado: op.lado || 'N/A',
+      // Check if this operation has detected news events
+      detectedNewsEvents: (op as any).detectedNewsEvents || []
     };
   };
 
@@ -947,9 +949,10 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                             return (
                               <div
                                 key={opIndex}
-                                className='rounded-lg bg-white border border-red-200 p-3 text-xs'
+                                className='rounded-lg bg-white border border-red-200 p-4 text-xs'
                               >
-                                <div className='grid grid-cols-2 gap-2 md:grid-cols-5'>
+                                {/* Basic Operation Info */}
+                                <div className='grid grid-cols-2 gap-2 md:grid-cols-5 mb-3'>
                                   <div>
                                     <span className='font-medium text-gray-600'>Ativo:</span>
                                     <div className='text-red-800'>{formattedOp.ativo}</div>
@@ -975,6 +978,71 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                     <div className='text-red-800'>{formattedOp.lado}</div>
                                   </div>
                                 </div>
+
+                                {/* Economic Events Details - only for news violations */}
+                                {violacao.codigo === 'OPERACAO_NOTICIAS' && formattedOp.detectedNewsEvents.length > 0 && (
+                                  <div className='border-t border-red-200 pt-3 mt-3'>
+                                    <h6 className='font-semibold text-red-900 mb-2 flex items-center'>
+                                      <AlertTriangle className='h-4 w-4 mr-1' />
+                                      Eventos Econômicos Detectados:
+                                    </h6>
+                                    {formattedOp.detectedNewsEvents.map((eventDetail: any, eventIndex: number) => (
+                                      <div key={eventIndex} className='bg-red-50 border border-red-100 rounded-lg p-3 mb-2'>
+                                        <div className='flex items-start justify-between mb-2'>
+                                          <div>
+                                            <div className='font-semibold text-red-900 text-sm'>
+                                              📈 {eventDetail.event.name}
+                                            </div>
+                                            <div className='text-red-700 text-xs mt-1'>
+                                              <span className='font-medium'>Impacto:</span> {eventDetail.event.impact} | 
+                                              <span className='font-medium ml-2'>Janela Detectada:</span> {eventDetail.detectedWindow} ({eventDetail.timeType})
+                                            </div>
+                                          </div>
+                                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                            eventDetail.event.impact === 'EXTREMO' ? 'bg-red-600 text-white' :
+                                            eventDetail.event.impact === 'MUITO ALTO' ? 'bg-red-500 text-white' :
+                                            'bg-orange-500 text-white'
+                                          }`}>
+                                            {eventDetail.event.impact}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className='text-xs text-red-700 space-y-1'>
+                                          <div><span className='font-medium'>📊 Descrição:</span> {eventDetail.event.description}</div>
+                                          <div><span className='font-medium'>📅 Frequência:</span> {eventDetail.event.frequency}</div>
+                                          <div><span className='font-medium'>⚡ Impacto no Mercado:</span> {eventDetail.event.market_impact}</div>
+                                          <div className='bg-yellow-50 border border-yellow-200 rounded p-2 mt-2'>
+                                            <span className='font-medium text-yellow-800'>💡 Recomendação YLOS:</span>
+                                            <div className='text-yellow-700 mt-1'>{eventDetail.event.recommendation}</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    
+                                    <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3'>
+                                      <div className='text-blue-800 text-xs'>
+                                        <span className='font-semibold'>🔍 Por que isso é uma violação?</span>
+                                        <div className='mt-1'>
+                                          Sua posição estava ABERTA durante o horário de release de um evento econômico de alto impacto. 
+                                          A YLOS Trading proíbe estar posicionado durante esses momentos em contas Master Funded devido à 
+                                          volatilidade extrema e imprevisível que pode causar perdas significativas.
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className='bg-green-50 border border-green-200 rounded-lg p-3 mt-2'>
+                                      <div className='text-green-800 text-xs'>
+                                        <span className='font-semibold'>✅ Como evitar no futuro:</span>
+                                        <div className='mt-1'>
+                                          1. Use um calendário econômico (investing.com, forexfactory.com)<br/>
+                                          2. Feche todas as posições 15 minutos antes de eventos de alto impacto<br/>
+                                          3. Aguarde 30 minutos após o release antes de reposicionar<br/>
+                                          4. Configure alertas para eventos importantes no seu celular
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -1037,9 +1105,10 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                             return (
                               <div
                                 key={opIndex}
-                                className='rounded-lg bg-white border border-yellow-200 p-3 text-xs'
+                                className='rounded-lg bg-white border border-yellow-200 p-4 text-xs'
                               >
-                                <div className='grid grid-cols-2 gap-2 md:grid-cols-5'>
+                                {/* Basic Operation Info */}
+                                <div className='grid grid-cols-2 gap-2 md:grid-cols-5 mb-3'>
                                   <div>
                                     <span className='font-medium text-gray-600'>Ativo:</span>
                                     <div className='text-yellow-800'>{formattedOp.ativo}</div>
@@ -1065,6 +1134,70 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                     <div className='text-yellow-800'>{formattedOp.lado}</div>
                                   </div>
                                 </div>
+
+                                {/* Economic Events Details - only for news violations */}
+                                {violacao.codigo === 'OPERACAO_NOTICIAS' && formattedOp.detectedNewsEvents.length > 0 && (
+                                  <div className='border-t border-yellow-200 pt-3 mt-3'>
+                                    <h6 className='font-semibold text-yellow-900 mb-2 flex items-center'>
+                                      <AlertTriangle className='h-4 w-4 mr-1' />
+                                      Eventos Econômicos Detectados:
+                                    </h6>
+                                    {formattedOp.detectedNewsEvents.map((eventDetail: any, eventIndex: number) => (
+                                      <div key={eventIndex} className='bg-yellow-50 border border-yellow-100 rounded-lg p-3 mb-2'>
+                                        <div className='flex items-start justify-between mb-2'>
+                                          <div>
+                                            <div className='font-semibold text-yellow-900 text-sm'>
+                                              📈 {eventDetail.event.name}
+                                            </div>
+                                            <div className='text-yellow-700 text-xs mt-1'>
+                                              <span className='font-medium'>Impacto:</span> {eventDetail.event.impact} | 
+                                              <span className='font-medium ml-2'>Janela Detectada:</span> {eventDetail.detectedWindow} ({eventDetail.timeType})
+                                            </div>
+                                          </div>
+                                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                            eventDetail.event.impact === 'EXTREMO' ? 'bg-red-600 text-white' :
+                                            eventDetail.event.impact === 'MUITO ALTO' ? 'bg-red-500 text-white' :
+                                            'bg-orange-500 text-white'
+                                          }`}>
+                                            {eventDetail.event.impact}
+                                          </span>
+                                        </div>
+                                        
+                                        <div className='text-xs text-yellow-700 space-y-1'>
+                                          <div><span className='font-medium'>📊 Descrição:</span> {eventDetail.event.description}</div>
+                                          <div><span className='font-medium'>📅 Frequência:</span> {eventDetail.event.frequency}</div>
+                                          <div><span className='font-medium'>⚡ Impacto no Mercado:</span> {eventDetail.event.market_impact}</div>
+                                          <div className='bg-blue-50 border border-blue-200 rounded p-2 mt-2'>
+                                            <span className='font-medium text-blue-800'>💡 Recomendação YLOS:</span>
+                                            <div className='text-blue-700 mt-1'>{eventDetail.event.recommendation}</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                    
+                                    <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3'>
+                                      <div className='text-blue-800 text-xs'>
+                                        <span className='font-semibold'>🔍 Por que isso é detectado?</span>
+                                        <div className='mt-1'>
+                                          Sua posição estava ABERTA durante o horário de release de um evento econômico de alto impacto. 
+                                          Em contas Instant Funding isso é um alerta, mas recomenda-se evitar para melhor gestão de risco.
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className='bg-green-50 border border-green-200 rounded-lg p-3 mt-2'>
+                                      <div className='text-green-800 text-xs'>
+                                        <span className='font-semibold'>✅ Como evitar no futuro:</span>
+                                        <div className='mt-1'>
+                                          1. Use um calendário econômico (investing.com, forexfactory.com)<br/>
+                                          2. Feche todas as posições 15 minutos antes de eventos de alto impacto<br/>
+                                          3. Aguarde 30 minutos após o release antes de reposicionar<br/>
+                                          4. Configure alertas para eventos importantes no seu celular
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

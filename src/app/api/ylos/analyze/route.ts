@@ -532,71 +532,180 @@ function analyzeYLOSRules(
     }
   }
 
-  // Rule 8: Check for operations during news events (prohibited for Master Funded)
-  // Note: This is a simplified check based on common news times
-  // For a complete implementation, you would need an economic calendar API
+  // Rule 8: Check for positions open during high-impact economic news events (prohibited for Master Funded)
+  // Enterprise-grade economic calendar with specific events and impact levels
   if (contaType === 'MASTER_FUNDED') {
-    const newsTimesOperations = operations.filter((op) => {
+    
+    // Define high-impact economic events with specific times and descriptions
+    const economicEvents = [
+      {
+        name: 'Non-Farm Payrolls (NFP)',
+        time_ny: '08:30',
+        time_brazil_std: '10:30', // NY Standard Time
+        time_brazil_dst: '09:30', // NY Daylight Time
+        impact: 'MUITO ALTO',
+        description: 'Relatório de emprego dos EUA - Um dos indicadores econômicos mais importantes do mundo',
+        frequency: 'Primeira sexta-feira do mês',
+        market_impact: 'Causa volatilidade extrema no USD, índices e commodities',
+        recommendation: 'Feche todas as posições 15 minutos antes e aguarde 30 minutos após o release'
+      },
+      {
+        name: 'Consumer Price Index (CPI)',
+        time_ny: '08:30',
+        time_brazil_std: '10:30',
+        time_brazil_dst: '09:30',
+        impact: 'MUITO ALTO',
+        description: 'Índice de Preços ao Consumidor dos EUA - Principal medida de inflação',
+        frequency: 'Mensal, geralmente entre os dias 10-15',
+        market_impact: 'Impacta decisões do FED sobre juros, causa volatilidade em bonds e USD',
+        recommendation: 'Evite estar posicionado durante o horário de release'
+      },
+      {
+        name: 'Federal Reserve Interest Rate Decision',
+        time_ny: '14:00',
+        time_brazil_std: '16:00',
+        time_brazil_dst: '15:00',
+        impact: 'EXTREMO',
+        description: 'Decisão de política monetária do Federal Reserve',
+        frequency: '8 reuniões por ano (aproximadamente a cada 6 semanas)',
+        market_impact: 'Move todos os mercados globais simultaneamente',
+        recommendation: 'PROIBIDO operar no dia da decisão do FED'
+      },
+      {
+        name: 'Initial Jobless Claims',
+        time_ny: '08:30',
+        time_brazil_std: '10:30',
+        time_brazil_dst: '09:30',
+        impact: 'ALTO',
+        description: 'Pedidos iniciais de auxílio-desemprego nos EUA',
+        frequency: 'Semanal (toda quinta-feira)',
+        market_impact: 'Indicador líder da saúde do mercado de trabalho americano',
+        recommendation: 'Evite posições durante o release'
+      },
+      {
+        name: 'Gross Domestic Product (GDP)',
+        time_ny: '08:30',
+        time_brazil_std: '10:30',
+        time_brazil_dst: '09:30',
+        impact: 'ALTO',
+        description: 'Produto Interno Bruto dos EUA - medida principal da atividade econômica',
+        frequency: 'Trimestral (dados preliminar, revisado e final)',
+        market_impact: 'Confirma tendências econômicas, impacta USD e índices',
+        recommendation: 'Monitore volatilidade 15 minutos antes e depois'
+      },
+      {
+        name: 'ISM Manufacturing PMI',
+        time_ny: '10:00',
+        time_brazil_std: '12:00',
+        time_brazil_dst: '11:00',
+        impact: 'ALTO',
+        description: 'Índice de Gerentes de Compras do setor manufatureiro',
+        frequency: 'Mensal (primeiro dia útil do mês)',
+        market_impact: 'Indicador líder da saúde da manufatura americana',
+        recommendation: 'Feche posições 10 minutos antes do release'
+      }
+    ];
+
+    const newsViolationsWithDetails = operations.filter((op) => {
       const abertura = parseDate(op.abertura);
       const fechamento = parseDate(op.fechamento);
 
-      const checkNewsTime = (date: Date, operationType: string) => {
-        const hour = date.getHours();
-        const minute = date.getMinutes();
+      const checkSpecificNewsEvent = (startDate: Date, endDate: Date) => {
+        const results = [];
 
-        // Common high-impact news times (Brazil timezone):
-        // 8:30 AM NY = 10:30 AM Brazil (during NY standard) or 9:30 AM Brazil (during NY daylight)
-        // 10:00 AM NY = 12:00 PM Brazil (during NY standard) or 11:00 AM Brazil (during NY daylight)
-        // We'll check around these times: 9:25-9:35 AM, 10:25-10:35 AM, 11:55-12:05 PM Brazil time
+        for (const event of economicEvents) {
+          // Check both standard and daylight time windows
+          const stdTimeMinutes = timeStringToMinutes(event.time_brazil_std);
+          const dstTimeMinutes = timeStringToMinutes(event.time_brazil_dst);
+          
+          // Create 10-minute windows around each event (5 minutes before and after)
+          const stdWindowStart = stdTimeMinutes - 5;
+          const stdWindowEnd = stdTimeMinutes + 5;
+          const dstWindowStart = dstTimeMinutes - 5;
+          const dstWindowEnd = dstTimeMinutes + 5;
 
-        const timeInMinutes = hour * 60 + minute;
-        const newsWindow1 = timeInMinutes >= 565 && timeInMinutes <= 575; // 9:25-9:35 AM
-        const newsWindow2 = timeInMinutes >= 625 && timeInMinutes <= 635; // 10:25-10:35 AM
-        const newsWindow3 = timeInMinutes >= 715 && timeInMinutes <= 725; // 11:55-12:05 PM
+          const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+          const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
 
-        const isInNewsWindow = newsWindow1 || newsWindow2 || newsWindow3;
+          // Check if position was open during either time window
+          const overlapStd = (startMinutes <= stdWindowEnd && endMinutes >= stdWindowStart);
+          const overlapDst = (startMinutes <= dstWindowEnd && endMinutes >= dstWindowStart);
 
-        if (isInNewsWindow) {
-          enterpriseLogger.debug(
-            `News time window detected`,
-            { ...context, requestId },
-            {
-              ativo: op.ativo,
-              operationType,
-              time: `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`,
-              timeInMinutes,
-              window1: newsWindow1,
-              window2: newsWindow2,
-              window3: newsWindow3,
-            },
-          );
+          if (overlapStd || overlapDst) {
+            const detectedWindow = overlapStd ? 
+              `${minutesToTimeString(stdWindowStart)}-${minutesToTimeString(stdWindowEnd)}` :
+              `${minutesToTimeString(dstWindowStart)}-${minutesToTimeString(dstWindowEnd)}`;
+
+            results.push({
+              event,
+              detectedWindow,
+              timeType: overlapStd ? 'Horário Padrão NY' : 'Horário de Verão NY'
+            });
+
+            enterpriseLogger.debug(
+              `Economic news event overlap detected`,
+              { ...context, requestId },
+              {
+                ativo: op.ativo,
+                eventName: event.name,
+                eventTime: overlapStd ? event.time_brazil_std : event.time_brazil_dst,
+                positionStart: `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`,
+                positionEnd: `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`,
+                impact: event.impact,
+                detectedWindow
+              },
+            );
+          }
         }
 
-        return isInNewsWindow;
+        return results;
       };
 
-      const aberturaViolation = checkNewsTime(abertura, 'abertura');
-      const fechamentoViolation = checkNewsTime(fechamento, 'fechamento');
-      
-      return aberturaViolation || fechamentoViolation;
+      const detectedEvents = checkSpecificNewsEvent(abertura, fechamento);
+      if (detectedEvents.length > 0) {
+        // Add the detected events to the operation for detailed reporting
+        (op as any).detectedNewsEvents = detectedEvents;
+        return true;
+      }
+      return false;
     });
 
-    if (newsTimesOperations.length > 0) {
+    if (newsViolationsWithDetails.length > 0) {
+      // Create detailed description with specific events
+      const allDetectedEvents = newsViolationsWithDetails
+        .flatMap(op => (op as any).detectedNewsEvents || [])
+        .map(detail => detail.event.name)
+        .filter((name, index, arr) => arr.indexOf(name) === index); // Remove duplicates
+
+      const eventsList = allDetectedEvents.length > 0 ? allDetectedEvents.join(', ') : 'eventos econômicos de alto impacto';
+
       violacoes.push({
         codigo: 'OPERACAO_NOTICIAS',
-        titulo: 'Operações durante notícias detectadas',
-        descricao: `Detectadas ${newsTimesOperations.length} operações durante horários típicos de notícias de alto impacto. PROIBIDO estar posicionado durante notícias em Master Funded. Janelas: 9:25-9:35, 10:25-10:35 e 11:55-12:05 (horário Brasil).`,
+        titulo: 'Posições abertas durante eventos econômicos detectadas',
+        descricao: `Detectadas ${newsViolationsWithDetails.length} posições que estavam ABERTAS durante eventos econômicos de alto impacto: ${eventsList}. PROIBIDO estar posicionado durante notícias em Master Funded. Ver detalhes para informações específicas de cada evento.`,
         severidade: 'CRITICAL',
-        operacoes_afetadas: newsTimesOperations,
+        operacoes_afetadas: newsViolationsWithDetails,
       });
       enterpriseLogger.ylosRuleViolation(
         requestId,
         'OPERACAO_NOTICIAS',
         'CRITICAL',
-        `${newsTimesOperations.length} operações durante notícias`,
+        `${newsViolationsWithDetails.length} posições durante eventos: ${eventsList}`,
         context,
       );
     }
+  }
+
+  // Helper functions for time conversion
+  function timeStringToMinutes(timeStr: string): number {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  function minutesToTimeString(minutes: number): string {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
   }
 
   // Generate professional recommendations based on YLOS official rules
