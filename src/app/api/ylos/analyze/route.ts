@@ -42,34 +42,83 @@ function parseCSV(csvContent: string): TradeOperation[] {
   const lines = csvContent.trim().split('\n')
   const operations: TradeOperation[] = []
   
-  // Skip header line
-  for (let i = 1; i < lines.length; i++) {
+  // Find the header line that contains "Ativo"
+  let headerIndex = -1
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('Ativo') && lines[i].includes('Abertura') && lines[i].includes('Fechamento')) {
+      headerIndex = i
+      break
+    }
+  }
+  
+  if (headerIndex === -1) {
+    return operations // No valid header found
+  }
+  
+  // Parse number in Brazilian format (1.234,56 -> 1234.56)
+  function parseBrazilianNumber(value: string): number {
+    if (!value || value.trim() === '' || value.trim() === '-') return 0
+    
+    // Remove spaces and handle special cases
+    let cleanValue = value.trim().replace(/\s+/g, '')
+    
+    // If it contains both . and ,, assume . is thousands separator and , is decimal
+    if (cleanValue.includes('.') && cleanValue.includes(',')) {
+      cleanValue = cleanValue.replace(/\./g, '').replace(',', '.')
+    }
+    // If it only contains , assume it's decimal separator
+    else if (cleanValue.includes(',') && !cleanValue.includes('.')) {
+      cleanValue = cleanValue.replace(',', '.')
+    }
+    // If it only contains . and has more than 3 digits after it, it's thousands separator
+    else if (cleanValue.includes('.')) {
+      const parts = cleanValue.split('.')
+      if (parts.length === 2 && parts[1].length > 2) {
+        // This is thousands separator, not decimal
+        cleanValue = cleanValue.replace('.', '')
+      }
+    }
+    
+    const result = parseFloat(cleanValue)
+    return isNaN(result) ? 0 : result
+  }
+  
+  // Process data lines after header
+  for (let i = headerIndex + 1; i < lines.length; i++) {
     const line = lines[i].trim()
     if (!line) continue
     
+    // Split by tab character
     const columns = line.split('\t')
     if (columns.length < 17) continue
     
+    // Skip lines that don't look like data (empty first column or doesn't start with asset name)
+    if (!columns[0] || columns[0].trim() === '') continue
+    
     try {
       const operation: TradeOperation = {
-        ativo: columns[0],
-        abertura: columns[1],
-        fechamento: columns[2],
-        tempo_operacao: columns[3],
-        qtd_compra: parseFloat(columns[4]) || 0,
-        qtd_venda: parseFloat(columns[5]) || 0,
-        lado: columns[6] as 'C' | 'V',
-        preco_compra: parseFloat(columns[7].replace('.', '').replace(',', '.')) || 0,
-        preco_venda: parseFloat(columns[8].replace('.', '').replace(',', '.')) || 0,
-        preco_mercado: parseFloat(columns[9].replace('.', '').replace(',', '.')) || 0,
-        medio: columns[10],
-        res_intervalo: parseFloat(columns[11].replace('.', '').replace(',', '.')) || 0,
-        res_operacao: parseFloat(columns[13].replace('.', '').replace(',', '.')) || 0,
-        total: parseFloat(columns[16].replace('.', '').replace(',', '.')) || 0
+        ativo: columns[0].trim(),
+        abertura: columns[1].trim(),
+        fechamento: columns[2].trim(),
+        tempo_operacao: columns[3].trim(),
+        qtd_compra: parseBrazilianNumber(columns[4]),
+        qtd_venda: parseBrazilianNumber(columns[5]),
+        lado: columns[6].trim() as 'C' | 'V',
+        preco_compra: parseBrazilianNumber(columns[7]),
+        preco_venda: parseBrazilianNumber(columns[8]),
+        preco_mercado: parseBrazilianNumber(columns[9]),
+        medio: columns[10].trim(),
+        res_intervalo: parseBrazilianNumber(columns[11]),
+        res_operacao: parseBrazilianNumber(columns[13]),
+        total: parseBrazilianNumber(columns[16])
       }
-      operations.push(operation)
+      
+      // Validate that we have essential data
+      if (operation.ativo && operation.abertura && operation.fechamento) {
+        operations.push(operation)
+      }
     } catch (error) {
-             // console.warn(`Erro ao processar linha ${i + 1}: ${error}`)
+      // console.warn(`Erro ao processar linha ${i + 1}: ${error}`)
     }
   }
   
