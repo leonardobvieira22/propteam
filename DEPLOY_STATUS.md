@@ -198,11 +198,22 @@ frontend:
 - ✅ Melhorado `amplify.yml` com logging detalhado
 - ✅ Adicionado `--include=dev` no npm ci
 
+#### 6. **Erro de ESLint - Link Component**
+
+**Erro**: `Do not use an <a> element to navigate to /. Use <Link /> from next/link instead`
+
+**Solução**:
+
+- ✅ Substituído `<a href='/'>` por `<Link href='/'>` em `not-found.tsx`
+- ✅ Adicionado `import Link from 'next/link'`
+- ✅ ESLint passou sem erros
+- ✅ Build completo funcionando
+
 ### 📊 Status Atual:
 
-- **Commit**: `a337ba2` - "fix: resolve dependency installation - remove pnpm-lock conflict"
+- **Commit**: `53b1367` - "fix: replace anchor tag with Link component in not-found page"
 - **Branch**: `main`
-- **Deploy**: Pronto para re-deploy no AWS Amplify
+- **Deploy**: ✅ **PRONTO PARA DEPLOY FINAL** ✅
 
 ### 🎯 Próximos Passos:
 
