@@ -420,7 +420,6 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     const minWinningDays = formData.contaType === 'MASTER_FUNDED' ? 7 : 5;
     const minDailyWin = formData.contaType === 'MASTER_FUNDED' ? 50 : 200;
     const maxDayPercentage = formData.contaType === 'MASTER_FUNDED' ? 40 : 30;
-    const dailyLimit = parseFloat(formData.saldoAtual) * 0.05;
 
     // Regra de Consistência oficial: % do melhor dia vs lucro total
     const bestDayPercentage =
@@ -482,18 +481,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         severity:
           bestDayPercentage <= maxDayPercentage ? 'success' : 'critical',
       },
-      {
-        code: 'LIMITE_DIARIO',
-        title: 'Limite Diário de Lucro',
-        description: `Máximo 5% do saldo (${dailyLimit.toLocaleString('en-US', { style: 'currency', currency: 'USD' })})`,
-        current: analysisResult.maior_lucro_dia,
-        required: dailyLimit,
-        status:
-          analysisResult.maior_lucro_dia <= dailyLimit ? 'approved' : 'warning',
-        icon: DollarSign,
-        severity:
-          analysisResult.maior_lucro_dia <= dailyLimit ? 'success' : 'warning',
-      },
+
       {
         code: 'OVERNIGHT',
         title: 'Posições Overnight',

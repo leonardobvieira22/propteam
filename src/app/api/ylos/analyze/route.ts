@@ -373,28 +373,7 @@ function analyzeYLOSRules(
     }
   }
 
-  // Rule 4: Daily profit limit (based on account balance)
-  const dailyLimit = saldoAtual * 0.05; // 5% of account balance
-  resultsByDay.forEach((result, day) => {
-    if (result > dailyLimit) {
-      violacoes.push({
-        codigo: 'LIMITE_DIARIO',
-        titulo: 'Limite diário de lucro excedido',
-        descricao: `No dia ${day}, o lucro de $${result.toFixed(2)} excedeu o limite diário de $${dailyLimit.toFixed(2)} (5% do saldo da conta).`,
-        severidade: 'WARNING',
-        valor_impacto: result - dailyLimit,
-      });
-      enterpriseLogger.ylosRuleViolation(
-        requestId,
-        'LIMITE_DIARIO',
-        'WARNING',
-        `Lucro de $${result.toFixed(2)} excedeu limite de $${dailyLimit.toFixed(2)}`,
-        context,
-      );
-    }
-  });
-
-  // Rule 5: Check for DCA strategy (maximum 3 averagings per operation)
+  // Rule 4: Check for DCA strategy (maximum 3 averagings per operation)
   const dcaOperations = operations.filter((op) => op.medio === 'Sim');
   const dcaDays = new Set(
     dcaOperations.map(
@@ -419,7 +398,7 @@ function analyzeYLOSRules(
     );
   }
 
-  // Rule 6: Check for overnight positions (prohibited in Master Funded)
+  // Rule 5: Check for overnight positions (prohibited in Master Funded)
   const overnightOperations = operations.filter((op) => {
     const abertura = parseDate(op.abertura);
     const fechamento = parseDate(op.fechamento);
@@ -444,7 +423,7 @@ function analyzeYLOSRules(
     );
   }
 
-  // Rule 7: Check for operations during NY market opening (9:30 AM NY time - prohibited for Master Funded)
+  // Rule 6: Check for operations during NY market opening (9:30 AM NY time - prohibited for Master Funded)
   if (contaType === 'MASTER_FUNDED') {
     const nyOpeningOperations = operations.filter((op) => {
       const abertura = parseDate(op.abertura);
@@ -489,7 +468,7 @@ function analyzeYLOSRules(
     }
   }
 
-  // Rule 8: Check for operations during news events (prohibited for Master Funded)
+  // Rule 7: Check for operations during news events (prohibited for Master Funded)
   // Note: This is a simplified check based on common news times
   // For a complete implementation, you would need an economic calendar API
   if (contaType === 'MASTER_FUNDED') {
@@ -612,12 +591,6 @@ function analyzeYLOSRules(
       recomendacoes.push(
         'Os alertas não impedem o saque mas devem ser considerados para melhor performance.',
       );
-
-      if (warningViolations.some((v) => v.codigo === 'LIMITE_DIARIO')) {
-        recomendacoes.push(
-          'Monitore o limite diário de 5% do saldo para gestão de risco otimizada.',
-        );
-      }
 
       if (warningViolations.some((v) => v.codigo === 'DCA_EXCESSIVO')) {
         recomendacoes.push(
