@@ -5,14 +5,11 @@ const nextConfig = {
   },
 
   reactStrictMode: true,
-  swcMinify: true,
 
   // AWS Amplify optimizations
   output: 'standalone',
   experimental: {
-    outputFileTracingIncludes: {
-      '/api/**/*': ['./node_modules/**/*.js', './node_modules/**/*.json'],
-    },
+    serverComponentsExternalPackages: ['@aws-sdk/client-ssm'],
   },
 
   // Environment variables
@@ -41,7 +38,7 @@ const nextConfig = {
           },
         ],
       },
-    ]
+    ];
   },
 
   // Uncoment to add domain whitelist
@@ -57,7 +54,7 @@ const nextConfig = {
   webpack(config) {
     // Grab the existing rule that handles SVG imports
     const fileLoaderRule = config.module.rules.find((rule) =>
-      rule.test?.test?.('.svg')
+      rule.test?.test?.('.svg'),
     );
 
     config.module.rules.push(
@@ -77,7 +74,7 @@ const nextConfig = {
           dimensions: false,
           titleProp: true,
         },
-      }
+      },
     );
 
     // Modify the file loader rule to ignore *.svg, since we have it handled now.
