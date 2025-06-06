@@ -990,12 +990,26 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                       <div key={eventIndex} className='bg-red-50 border border-red-100 rounded-lg p-3 mb-2'>
                                         <div className='flex items-start justify-between mb-2'>
                                           <div>
-                                            <div className='font-semibold text-red-900 text-sm'>
+                                            <div className='font-semibold text-red-900 text-sm flex items-center'>
                                               📈 {eventDetail.event.name}
+                                              <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${
+                                                eventDetail.confidenceLevel === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
+                                                eventDetail.confidenceLevel === 'HIGH_PROBABILITY' ? 'bg-blue-100 text-blue-800' :
+                                                eventDetail.confidenceLevel === 'ESTIMATED' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-gray-100 text-gray-800'
+                                              }`}>
+                                                {eventDetail.confidenceLevel === 'CONFIRMED' ? '✓ CONFIRMADO' :
+                                                 eventDetail.confidenceLevel === 'HIGH_PROBABILITY' ? '⚡ PROVÁVEL' :
+                                                 eventDetail.confidenceLevel === 'ESTIMATED' ? '⚠️ ESTIMADO' :
+                                                 '❌ SEM EVENTO'}
+                                              </span>
                                             </div>
                                             <div className='text-red-700 text-xs mt-1'>
                                               <span className='font-medium'>Impacto:</span> {eventDetail.event.impact} | 
                                               <span className='font-medium ml-2'>Janela Detectada:</span> {eventDetail.detectedWindow} ({eventDetail.timeType})
+                                            </div>
+                                            <div className='text-red-600 text-xs mt-1 italic'>
+                                              📅 {eventDetail.dateRationale}
                                             </div>
                                           </div>
                                           <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -1026,6 +1040,21 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                           Sua posição estava ABERTA durante o horário de release de um evento econômico de alto impacto. 
                                           A YLOS Trading proíbe estar posicionado durante esses momentos em contas Master Funded devido à 
                                           volatilidade extrema e imprevisível que pode causar perdas significativas.
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className='bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2'>
+                                      <div className='text-orange-800 text-xs'>
+                                        <span className='font-semibold'>⚠️ Transparência sobre Precisão dos Dados:</span>
+                                        <div className='mt-1'>
+                                          <strong>LIMITAÇÃO ATUAL:</strong> Este sistema ainda não utiliza uma API real de calendário econômico. 
+                                          As detecções são baseadas em:
+                                          <br/>• <strong>CONFIRMADO</strong>: Datas conhecidas de eventos (ex: reuniões FED programadas)
+                                          <br/>• <strong>PROVÁVEL</strong>: Padrões típicos (ex: Claims às quintas, NFP na 1ª sexta)
+                                          <br/>• <strong>ESTIMADO</strong>: Horários típicos de eventos (pode gerar falsos positivos)
+                                          <br/><br/>
+                                          Para máxima precisão, sempre consulte calendários econômicos oficiais.
                                         </div>
                                       </div>
                                     </div>
@@ -1146,12 +1175,26 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                       <div key={eventIndex} className='bg-yellow-50 border border-yellow-100 rounded-lg p-3 mb-2'>
                                         <div className='flex items-start justify-between mb-2'>
                                           <div>
-                                            <div className='font-semibold text-yellow-900 text-sm'>
+                                            <div className='font-semibold text-yellow-900 text-sm flex items-center'>
                                               📈 {eventDetail.event.name}
+                                              <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${
+                                                eventDetail.confidenceLevel === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
+                                                eventDetail.confidenceLevel === 'HIGH_PROBABILITY' ? 'bg-blue-100 text-blue-800' :
+                                                eventDetail.confidenceLevel === 'ESTIMATED' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-gray-100 text-gray-800'
+                                              }`}>
+                                                {eventDetail.confidenceLevel === 'CONFIRMED' ? '✓ CONFIRMADO' :
+                                                 eventDetail.confidenceLevel === 'HIGH_PROBABILITY' ? '⚡ PROVÁVEL' :
+                                                 eventDetail.confidenceLevel === 'ESTIMATED' ? '⚠️ ESTIMADO' :
+                                                 '❌ SEM EVENTO'}
+                                              </span>
                                             </div>
                                             <div className='text-yellow-700 text-xs mt-1'>
                                               <span className='font-medium'>Impacto:</span> {eventDetail.event.impact} | 
                                               <span className='font-medium ml-2'>Janela Detectada:</span> {eventDetail.detectedWindow} ({eventDetail.timeType})
+                                            </div>
+                                            <div className='text-yellow-600 text-xs mt-1 italic'>
+                                              📅 {eventDetail.dateRationale}
                                             </div>
                                           </div>
                                           <span className={`px-2 py-1 rounded text-xs font-medium ${
@@ -1181,6 +1224,21 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                         <div className='mt-1'>
                                           Sua posição estava ABERTA durante o horário de release de um evento econômico de alto impacto. 
                                           Em contas Instant Funding isso é um alerta, mas recomenda-se evitar para melhor gestão de risco.
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className='bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2'>
+                                      <div className='text-orange-800 text-xs'>
+                                        <span className='font-semibold'>⚠️ Transparência sobre Precisão dos Dados:</span>
+                                        <div className='mt-1'>
+                                          <strong>LIMITAÇÃO ATUAL:</strong> Este sistema ainda não utiliza uma API real de calendário econômico. 
+                                          As detecções são baseadas em:
+                                          <br/>• <strong>CONFIRMADO</strong>: Datas conhecidas de eventos (ex: reuniões FED programadas)
+                                          <br/>• <strong>PROVÁVEL</strong>: Padrões típicos (ex: Claims às quintas, NFP na 1ª sexta)
+                                          <br/>• <strong>ESTIMADO</strong>: Horários típicos de eventos (pode gerar falsos positivos)
+                                          <br/><br/>
+                                          Para máxima precisão, sempre consulte calendários econômicos oficiais.
                                         </div>
                                       </div>
                                     </div>
