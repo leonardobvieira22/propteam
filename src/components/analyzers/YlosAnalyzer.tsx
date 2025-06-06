@@ -1,7 +1,6 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import Image from 'next/image';
 import {
   AlertCircle,
   AlertTriangle,
@@ -65,6 +64,56 @@ interface AnalysisResult {
   recomendacoes: string[];
   proximos_passos: string[];
 }
+
+// YLOS Trading Logo Component (SVG)
+const YlosLogo = ({ size = 60, className = "" }: { size?: number; className?: string }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 200 200"
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Hexagon background */}
+    <path
+      d="M50 15 L150 15 L175 50 L175 150 L150 185 L50 185 L25 150 L25 50 Z"
+      fill="#E5E7EB"
+      stroke="#9CA3AF"
+      strokeWidth="2"
+    />
+    
+    {/* Trading symbol - stylized chart/growth */}
+    <path
+      d="M60 140 L80 120 L100 100 L120 80 L140 60"
+      stroke="#3B82F6"
+      strokeWidth="4"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    
+    {/* Arrow pointing up */}
+    <path
+      d="M130 70 L140 60 L150 70"
+      stroke="#3B82F6"
+      strokeWidth="4"
+      fill="none"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    
+    {/* YLOS text styling */}
+    <text
+      x="100"
+      y="170"
+      textAnchor="middle"
+      className="text-lg font-bold fill-gray-700"
+      style={{ fontSize: '18px' }}
+    >
+      YLOS
+    </text>
+  </svg>
+);
 
 export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
   const [step, setStep] = useState<'form' | 'upload' | 'analyzing' | 'results'>(
@@ -197,13 +246,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       {/* YLOS Trading Header */}
       <div className='mb-8 flex items-center justify-center'>
         <div className='flex items-center space-x-4'>
-          <Image
-            src='/images/ylos-trading-logo.png'
-            alt='YLOS Trading'
-            width={60}
-            height={60}
-            className='object-contain'
-          />
+          <YlosLogo size={60} />
           <div className='text-center'>
             <h1 className='text-xl font-bold text-gray-800'>YLOS Trading</h1>
             <p className='text-sm text-gray-600'>Análise de Conformidade</p>
@@ -341,13 +384,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       {/* YLOS Trading Header */}
       <div className='card bg-gradient-to-r from-blue-50 to-indigo-50 p-4'>
         <div className='flex items-center justify-center space-x-4'>
-          <Image
-            src='/images/ylos-trading-logo.png'
-            alt='YLOS Trading'
-            width={50}
-            height={50}
-            className='object-contain'
-          />
+          <YlosLogo size={50} />
           <div className='text-center'>
             <h1 className='text-lg font-bold text-gray-800'>YLOS Trading</h1>
             <p className='text-xs text-gray-600'>Sistema de Análise</p>
@@ -678,13 +715,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           {/* YLOS Trading Header */}
           <div className='mb-6 flex items-center justify-center'>
             <div className='flex items-center space-x-4'>
-              <Image
-                src='/images/ylos-trading-logo.png'
-                alt='YLOS Trading'
-                width={80}
-                height={80}
-                className='object-contain'
-              />
+              <YlosLogo size={80} />
               <div className='text-center'>
                 <h1 className='text-2xl font-bold text-gray-800'>YLOS Trading</h1>
                 <p className='text-sm text-gray-600'>Sistema Oficial de Análise de Regras</p>
@@ -814,13 +845,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
               <span>Análise Detalhada das Regras YLOS</span>
             </h3>
             <div className='flex items-center space-x-2'>
-              <Image
-                src='/images/ylos-trading-logo.png'
-                alt='YLOS Trading'
-                width={32}
-                height={32}
-                className='object-contain opacity-60'
-              />
+                             <YlosLogo size={32} className="opacity-60" />
               <span className='text-sm text-gray-500 font-medium'>YLOS Trading</span>
             </div>
           </div>
