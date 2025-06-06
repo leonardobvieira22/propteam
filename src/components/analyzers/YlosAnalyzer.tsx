@@ -872,7 +872,9 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                     </div>
 
                     <div className='flex items-center justify-between'>
-                      <span className='text-xs text-gray-600'>Requerido:</span>
+                      <span className='text-xs text-gray-600'>
+                        {rule.code === 'LIMITE_DIARIO_CONSISTENCIA' ? 'Máximo:' : 'Requerido:'}
+                      </span>
                       <span className='text-xs text-gray-800'>
                         {typeof rule.required === 'number'
                           ? rule.code === 'LIMITE_DIARIO'
