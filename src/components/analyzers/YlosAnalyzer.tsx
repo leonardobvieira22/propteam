@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import {
   AlertCircle,
   AlertTriangle,
@@ -193,6 +194,23 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       animate={{ opacity: 1, y: 0 }}
       className='card p-6'
     >
+      {/* YLOS Trading Header */}
+      <div className='mb-8 flex items-center justify-center'>
+        <div className='flex items-center space-x-4'>
+          <Image
+            src='/images/ylos-trading-logo.png'
+            alt='YLOS Trading'
+            width={60}
+            height={60}
+            className='object-contain'
+          />
+          <div className='text-center'>
+            <h1 className='text-xl font-bold text-gray-800'>YLOS Trading</h1>
+            <p className='text-sm text-gray-600'>Análise de Conformidade</p>
+          </div>
+        </div>
+      </div>
+
       <h2 className='mb-6 text-xl font-semibold text-gray-900'>
         Informações da Conta
       </h2>
@@ -320,6 +338,23 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       animate={{ opacity: 1, y: 0 }}
       className='space-y-6'
     >
+      {/* YLOS Trading Header */}
+      <div className='card bg-gradient-to-r from-blue-50 to-indigo-50 p-4'>
+        <div className='flex items-center justify-center space-x-4'>
+          <Image
+            src='/images/ylos-trading-logo.png'
+            alt='YLOS Trading'
+            width={50}
+            height={50}
+            className='object-contain'
+          />
+          <div className='text-center'>
+            <h1 className='text-lg font-bold text-gray-800'>YLOS Trading</h1>
+            <p className='text-xs text-gray-600'>Sistema de Análise</p>
+          </div>
+        </div>
+      </div>
+
       {/* Resumo */}
       <div className='card bg-blue-50 p-4'>
         <h3 className='mb-2 text-sm font-medium text-blue-900'>
@@ -640,6 +675,23 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         <div
           className={`card p-8 ${aprovado ? 'border-green-200 bg-gradient-to-r from-green-50 to-emerald-50' : 'border-red-200 bg-gradient-to-r from-red-50 to-rose-50'}`}
         >
+          {/* YLOS Trading Header */}
+          <div className='mb-6 flex items-center justify-center'>
+            <div className='flex items-center space-x-4'>
+              <Image
+                src='/images/ylos-trading-logo.png'
+                alt='YLOS Trading'
+                width={80}
+                height={80}
+                className='object-contain'
+              />
+              <div className='text-center'>
+                <h1 className='text-2xl font-bold text-gray-800'>YLOS Trading</h1>
+                <p className='text-sm text-gray-600'>Sistema Oficial de Análise de Regras</p>
+              </div>
+            </div>
+          </div>
+          
           <div className='flex items-start justify-between'>
             <div className='flex items-center space-x-6'>
               <div
@@ -756,10 +808,22 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
 
         {/* YLOS Trading Rules Analysis */}
         <div className='card p-6'>
-          <h3 className='mb-6 flex items-center space-x-2 text-xl font-semibold text-gray-900'>
-            <BarChart3 className='h-6 w-6 text-blue-600' />
-            <span>Análise Detalhada das Regras YLOS</span>
-          </h3>
+          <div className='mb-6 flex items-center justify-between'>
+            <h3 className='flex items-center space-x-2 text-xl font-semibold text-gray-900'>
+              <BarChart3 className='h-6 w-6 text-blue-600' />
+              <span>Análise Detalhada das Regras YLOS</span>
+            </h3>
+            <div className='flex items-center space-x-2'>
+              <Image
+                src='/images/ylos-trading-logo.png'
+                alt='YLOS Trading'
+                width={32}
+                height={32}
+                className='object-contain opacity-60'
+              />
+              <span className='text-sm text-gray-500 font-medium'>YLOS Trading</span>
+            </div>
+          </div>
 
           <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
             {rulesAnalysis.map((rule, index) => {
