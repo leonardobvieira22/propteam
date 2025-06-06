@@ -740,14 +740,14 @@ function analyzeYLOSRules(
       violacoes.push({
         codigo: 'OPERACAO_NOTICIAS',
         titulo: 'Posições abertas durante eventos econômicos detectadas',
-        descricao: `Detectadas ${newsViolationsWithDetails.length} posições que estavam ABERTAS durante eventos econômicos de alto impacto: ${eventsList}. PROIBIDO estar posicionado durante notícias em Master Funded. Ver detalhes para informações específicas de cada evento.`,
-        severidade: 'CRITICAL',
+        descricao: `Detectadas ${newsViolationsWithDetails.length} posições que estavam ABERTAS durante eventos econômicos de alto impacto: ${eventsList}. ATENÇÃO: YLOS Trading recomenda evitar operações durante notícias em Master Funded, mas as regras específicas não são claramente definidas. Ver detalhes para informações específicas de cada evento.`,
+        severidade: 'WARNING',
         operacoes_afetadas: newsViolationsWithDetails,
       });
       enterpriseLogger.ylosRuleViolation(
         requestId,
         'OPERACAO_NOTICIAS',
-        'CRITICAL',
+        'WARNING',
         `${newsViolationsWithDetails.length} posições durante eventos: ${eventsList}`,
         context,
       );
@@ -832,12 +832,6 @@ function analyzeYLOSRules(
         );
       }
 
-      if (criticalViolations.some((v) => v.codigo === 'OPERACAO_NOTICIAS')) {
-        recomendacoes.push(
-          'CRÍTICO: Não opere durante horários de notícias de alto impacto - proibido em Master Funded.',
-        );
-      }
-
       if (
         criticalViolations.some(
           (v) => v.codigo === 'LIMITE_DIARIO_CONSISTENCIA',
@@ -857,6 +851,12 @@ function analyzeYLOSRules(
       if (warningViolations.some((v) => v.codigo === 'DCA_EXCESSIVO')) {
         recomendacoes.push(
           'Limite a estratégia de médio a máximo 3 operações conforme regras YLOS.',
+        );
+      }
+
+      if (warningViolations.some((v) => v.codigo === 'OPERACAO_NOTICIAS')) {
+        recomendacoes.push(
+          'ATENÇÃO: Evite operações durante notícias de alto impacto - recomendação YLOS Trading (regras específicas não claramente definidas).',
         );
       }
     }

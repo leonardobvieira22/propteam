@@ -615,25 +615,18 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       {
         code: 'OPERACAO_NOTICIAS',
         title: 'Operações Durante Notícias',
-        description:
-          formData.contaType === 'MASTER_FUNDED'
-            ? 'PROIBIDO estar posicionado durante notícias'
-            : 'Verificação de operações durante notícias',
+        description: 'YLOS Trading recomenda evitar operações durante notícias de alto impacto (regras específicas não claramente definidas)',
         current: violacoes.some((v) => v.codigo === 'OPERACAO_NOTICIAS')
           ? 'Detectadas'
           : 'Nenhuma',
         required: 'Nenhuma',
         status: !violacoes.some((v) => v.codigo === 'OPERACAO_NOTICIAS')
           ? 'approved'
-          : formData.contaType === 'MASTER_FUNDED'
-            ? 'rejected'
-            : 'warning',
+          : 'warning',
         icon: AlertTriangle,
         severity: !violacoes.some((v) => v.codigo === 'OPERACAO_NOTICIAS')
           ? 'success'
-          : formData.contaType === 'MASTER_FUNDED'
-            ? 'critical'
-            : 'warning',
+          : 'warning',
       },
     ];
 
@@ -1037,10 +1030,10 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                                     
                                     <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3'>
                                       <div className='text-blue-800 text-xs'>
-                                        <span className='font-semibold'>🔍 Por que isso é uma violação?</span>
+                                        <span className='font-semibold'>🔍 Por que isso é detectado?</span>
                                         <div className='mt-1'>
                                           Sua posição estava ABERTA durante o horário de release de um evento econômico de alto impacto. 
-                                          A YLOS Trading proíbe estar posicionado durante esses momentos em contas Master Funded devido à 
+                                          A YLOS Trading recomenda evitar operações durante esses momentos devido à 
                                           volatilidade extrema e imprevisível que pode causar perdas significativas.
                                         </div>
                                       </div>
