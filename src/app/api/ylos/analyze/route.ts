@@ -983,10 +983,41 @@ function analyzeYLOSRules(
   const datas = operations.map((op) => parseDate(op.abertura));
   const dataInicial = new Date(Math.min(...datas.map((d) => d.getTime())));
   const dataFinal = new Date(Math.max(...datas.map((d) => d.getTime())));
-  const totalDias =
-    Math.ceil(
-      (dataFinal.getTime() - dataInicial.getTime()) / (1000 * 60 * 60 * 24),
-    ) + 1;
+
+  // Calcular diferença em dias de forma mais precisa
+  // Normalizar para início do dia para evitar problemas de horário
+  const dataInicialNormalizada = new Date(
+    dataInicial.getFullYear(),
+    dataInicial.getMonth(),
+    dataInicial.getDate(),
+  );
+  const dataFinalNormalizada = new Date(
+    dataFinal.getFullYear(),
+    dataFinal.getMonth(),
+    dataFinal.getDate(),
+  );
+
+  // Calcular diferença em dias e somar 1 (inclusive)
+  const diferencaEmDias = Math.floor(
+    (dataFinalNormalizada.getTime() - dataInicialNormalizada.getTime()) /
+      (1000 * 60 * 60 * 24),
+  );
+  const totalDias = diferencaEmDias + 1;
+
+  // Enterprise logging para debug de período
+  enterpriseLogger.debug(
+    'Período de análise calculado',
+    { ...context, requestId },
+    {
+      dataInicial: dataInicial.toISOString(),
+      dataFinal: dataFinal.toISOString(),
+      dataInicialNormalizada: dataInicialNormalizada.toISOString(),
+      dataFinalNormalizada: dataFinalNormalizada.toISOString(),
+      diferencaEmDias,
+      totalDias,
+      totalOperacoes: operations.length,
+    },
+  );
 
   const periodo_analise = {
     data_inicial: dataInicial.toLocaleDateString('pt-BR'),
