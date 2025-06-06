@@ -466,8 +466,8 @@ function analyzeYLOSRules(
       const fechamento = parseDate(op.fechamento);
 
       // Check if position was open during the prohibited window
-      // 9:15-9:45 AM NY = approximately 11:15-11:45 AM Brazil (standard time) or 10:15-10:45 AM Brazil (daylight time)
-      // We'll check both windows to be safe
+      // 9:15-9:45 AM NY = 10:15-10:45 AM Brazil (DST) or 11:15-11:45 AM Brazil (Standard)
+      // We determine which timezone based on the date
       const checkPositionOpenDuringWindow = () => {
         const hour = abertura.getHours();
         const minute = abertura.getMinutes();
@@ -477,20 +477,23 @@ function analyzeYLOSRules(
         const fechamentoMinute = fechamento.getMinutes();
         const fechamentoMinutes = fechamentoHour * 60 + fechamentoMinute;
 
+        // Determine if we're in Daylight Saving Time (March-November in US)
+        const month = abertura.getMonth() + 1; // 1-based month
+        const isDST = month >= 3 && month <= 11; // Approximate DST period
+        
         // NY Opening windows in Brazil time (15 minutes before and after 9:30 AM NY)
-        // 9:15-9:45 AM NY = 11:15-11:45 AM Brazil (standard) or 10:15-10:45 AM Brazil (daylight)
-        const nyWindow1Start = 615; // 10:15 AM Brazil
-        const nyWindow1End = 645;   // 10:45 AM Brazil
-        const nyWindow2Start = 675; // 11:15 AM Brazil  
-        const nyWindow2End = 705;   // 11:45 AM Brazil
+        // DST: 9:15-9:45 AM NY = 10:15-10:45 AM Brazil
+        // Standard: 9:15-9:45 AM NY = 11:15-11:45 AM Brazil
+        const windowStart = isDST ? 615 : 675; // 10:15 AM (DST) or 11:15 AM (Standard)
+        const windowEnd = isDST ? 645 : 705;   // 10:45 AM (DST) or 11:45 AM (Standard)
+        
+        // Check if position was open during the prohibited window
+        const hasOverlap = (aberturaMinutes <= windowEnd && fechamentoMinutes >= windowStart);
+        
+        const timezoneName = isDST ? 'Daylight Saving Time (DST)' : 'Standard Time';
+        const windowBrazil = isDST ? '10:15-10:45' : '11:15-11:45';
 
-        // Check if position was open during any of these windows
-        const overlapWindow1 = 
-          (aberturaMinutes <= nyWindow1End && fechamentoMinutes >= nyWindow1Start);
-        const overlapWindow2 = 
-          (aberturaMinutes <= nyWindow2End && fechamentoMinutes >= nyWindow2Start);
-
-        const hasViolation = overlapWindow1 || overlapWindow2;
+        const hasViolation = hasOverlap;
 
         if (hasViolation) {
           enterpriseLogger.debug(
@@ -502,8 +505,12 @@ function analyzeYLOSRules(
               fechamento: `${fechamentoHour.toString().padStart(2, '0')}:${fechamentoMinute.toString().padStart(2, '0')}`,
               aberturaMinutes,
               fechamentoMinutes,
-              window1Overlap: overlapWindow1,
-              window2Overlap: overlapWindow2,
+              isDST,
+              timezoneName,
+              windowBrazil,
+              windowStart,
+              windowEnd,
+              hasOverlap,
             },
           );
         }
@@ -515,10 +522,18 @@ function analyzeYLOSRules(
     });
 
     if (nyOpeningViolations.length > 0) {
+      // Determine timezone for the first violation to show in description
+      const firstViolation = nyOpeningViolations[0];
+      const firstDate = parseDate(firstViolation.abertura);
+      const month = firstDate.getMonth() + 1;
+      const isDST = month >= 3 && month <= 11;
+      const windowBrazil = isDST ? '10:15-10:45' : '11:15-11:45';
+      const timezoneName = isDST ? 'Horário de Verão NY' : 'Horário Padrão NY';
+      
       violacoes.push({
         codigo: 'ABERTURA_NY',
         titulo: 'Posições abertas durante abertura NY detectadas',
-        descricao: `Detectadas ${nyOpeningViolations.length} posições que estavam ABERTAS durante a janela proibida de abertura do mercado NY (9:15-9:45 AM NY / 10:15-10:45 ou 11:15-11:45 horário Brasil). PROIBIDO estar posicionado 15 min antes até 15 min depois da abertura NY em Master Funded.`,
+        descricao: `Detectadas ${nyOpeningViolations.length} posições que estavam ABERTAS durante a janela proibida de abertura do mercado NY (9:15-9:45 AM NY = ${windowBrazil} AM horário Brasil - ${timezoneName}). PROIBIDO estar posicionado 15 min antes até 15 min depois da abertura NY em Master Funded.`,
         severidade: 'CRITICAL',
         operacoes_afetadas: nyOpeningViolations,
       });
