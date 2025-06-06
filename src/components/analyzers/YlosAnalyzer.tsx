@@ -44,6 +44,21 @@ interface TradeOperation {
   [key: string]: unknown;
 }
 
+interface EventDetail {
+  event: {
+    name: string;
+    impact: string;
+    description: string;
+    frequency: string;
+    market_impact: string;
+    recommendation: string;
+  };
+  confidenceLevel: string;
+  detectedWindow: string;
+  timeType: string;
+  dateRationale: string;
+}
+
 interface AnalysisResult {
   aprovado: boolean;
   total_operacoes: number;
@@ -52,6 +67,22 @@ interface AnalysisResult {
   lucro_total: number;
   maior_lucro_dia: number;
   consistencia_40_percent: boolean;
+  periodo_analise: {
+    data_inicial: string;
+    data_final: string;
+    total_dias: number;
+  };
+  operacoes_detalhadas: Array<{
+    id: string;
+    ativo: string;
+    abertura: string;
+    fechamento: string;
+    lado: 'C' | 'V';
+    resultado: number;
+    status: 'APROVADA' | 'REPROVADA' | 'WARNING';
+    violacoes: string[];
+    descricao_status: string;
+  }>;
   violacoes: Array<{
     codigo: string;
     titulo: string;
@@ -66,48 +97,54 @@ interface AnalysisResult {
 }
 
 // YLOS Trading Logo Component (SVG)
-const YlosLogo = ({ size = 60, className = "" }: { size?: number; className?: string }) => (
+const YlosLogo = ({
+  size = 60,
+  className = '',
+}: {
+  size?: number;
+  className?: string;
+}) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 200 200"
+    viewBox='0 0 200 200'
     className={className}
-    xmlns="http://www.w3.org/2000/svg"
+    xmlns='http://www.w3.org/2000/svg'
   >
     {/* Hexagon background */}
     <path
-      d="M50 15 L150 15 L175 50 L175 150 L150 185 L50 185 L25 150 L25 50 Z"
-      fill="#E5E7EB"
-      stroke="#9CA3AF"
-      strokeWidth="2"
+      d='M50 15 L150 15 L175 50 L175 150 L150 185 L50 185 L25 150 L25 50 Z'
+      fill='#E5E7EB'
+      stroke='#9CA3AF'
+      strokeWidth='2'
     />
-    
+
     {/* Trading symbol - stylized chart/growth */}
     <path
-      d="M60 140 L80 120 L100 100 L120 80 L140 60"
-      stroke="#3B82F6"
-      strokeWidth="4"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      d='M60 140 L80 120 L100 100 L120 80 L140 60'
+      stroke='#3B82F6'
+      strokeWidth='4'
+      fill='none'
+      strokeLinecap='round'
+      strokeLinejoin='round'
     />
-    
+
     {/* Arrow pointing up */}
     <path
-      d="M130 70 L140 60 L150 70"
-      stroke="#3B82F6"
-      strokeWidth="4"
-      fill="none"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      d='M130 70 L140 60 L150 70'
+      stroke='#3B82F6'
+      strokeWidth='4'
+      fill='none'
+      strokeLinecap='round'
+      strokeLinejoin='round'
     />
-    
+
     {/* YLOS text styling */}
     <text
-      x="100"
-      y="170"
-      textAnchor="middle"
-      className="text-lg font-bold fill-gray-700"
+      x='100'
+      y='170'
+      textAnchor='middle'
+      className='fill-gray-700 text-lg font-bold'
       style={{ fontSize: '18px' }}
     >
       YLOS
@@ -132,10 +169,12 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     null,
   );
   const [error, setError] = useState<string>('');
-  const [expandedViolations, setExpandedViolations] = useState<Set<string>>(new Set());
+  const [expandedViolations, setExpandedViolations] = useState<Set<string>>(
+    new Set(),
+  );
 
   const toggleViolationDetails = (codigo: string) => {
-    setExpandedViolations(prev => {
+    setExpandedViolations((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(codigo)) {
         newSet.delete(codigo);
@@ -154,7 +193,9 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       resultado: `$${op.res_operacao.toFixed(2)}`,
       lado: op.lado || 'N/A',
       // Check if this operation has detected news events
-      detectedNewsEvents: (op as any).detectedNewsEvents || []
+      detectedNewsEvents:
+        (op as TradeOperation & { detectedNewsEvents?: EventDetail[] })
+          .detectedNewsEvents || [],
     };
   };
 
@@ -549,7 +590,11 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     // Regra de Consistência oficial: % do melhor dia vs lucro total
     const bestDayPercentage =
       analysisResult.lucro_total > 0
-        ? Math.round(((analysisResult.maior_lucro_dia / analysisResult.lucro_total) * 100) * 100) / 100
+        ? Math.round(
+            (analysisResult.maior_lucro_dia / analysisResult.lucro_total) *
+              100 *
+              100,
+          ) / 100
         : 0;
 
     // Taxa de sucesso baseada em dias vencedores com valor mínimo oficial
@@ -687,7 +732,8 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       {
         code: 'OPERACAO_NOTICIAS',
         title: 'Operações Durante Notícias',
-        description: 'YLOS Trading recomenda evitar operações durante notícias de alto impacto (regras específicas não claramente definidas)',
+        description:
+          'YLOS Trading recomenda evitar operações durante notícias de alto impacto (regras específicas não claramente definidas)',
         current: violacoes.some((v) => v.codigo === 'OPERACAO_NOTICIAS')
           ? 'Detectadas'
           : 'Nenhuma',
@@ -717,12 +763,16 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
             <div className='flex items-center space-x-4'>
               <YlosLogo size={80} />
               <div className='text-center'>
-                <h1 className='text-2xl font-bold text-gray-800'>YLOS Trading</h1>
-                <p className='text-sm text-gray-600'>Sistema Oficial de Análise de Regras</p>
+                <h1 className='text-2xl font-bold text-gray-800'>
+                  YLOS Trading
+                </h1>
+                <p className='text-sm text-gray-600'>
+                  Sistema Oficial de Análise de Regras
+                </p>
               </div>
             </div>
           </div>
-          
+
           <div className='flex items-start justify-between'>
             <div className='flex items-center space-x-6'>
               <div
@@ -837,6 +887,98 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           </div>
         </div>
 
+        {/* Período de Análise */}
+        <div className='card p-6'>
+          <div className='mb-6 flex items-center justify-between'>
+            <h3 className='flex items-center space-x-2 text-xl font-semibold text-gray-900'>
+              <Calendar className='h-6 w-6 text-blue-600' />
+              <span>Período Analisado</span>
+            </h3>
+            <div className='flex items-center space-x-2'>
+              <YlosLogo size={32} className='opacity-60' />
+              <span className='text-sm font-medium text-gray-500'>
+                Dados do CSV
+              </span>
+            </div>
+          </div>
+
+          <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+            <div className='rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 p-4'>
+              <div className='flex items-center space-x-3'>
+                <div className='rounded-lg bg-indigo-100 p-2'>
+                  <Calendar className='h-5 w-5 text-indigo-600' />
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-indigo-700'>
+                    Data Inicial
+                  </p>
+                  <p className='text-lg font-bold text-indigo-900'>
+                    {analysisResult.periodo_analise.data_inicial}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className='rounded-lg bg-gradient-to-br from-teal-50 to-teal-100 p-4'>
+              <div className='flex items-center space-x-3'>
+                <div className='rounded-lg bg-teal-100 p-2'>
+                  <Calendar className='h-5 w-5 text-teal-600' />
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-teal-700'>
+                    Data Final
+                  </p>
+                  <p className='text-lg font-bold text-teal-900'>
+                    {analysisResult.periodo_analise.data_final}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className='rounded-lg bg-gradient-to-br from-amber-50 to-amber-100 p-4'>
+              <div className='flex items-center space-x-3'>
+                <div className='rounded-lg bg-amber-100 p-2'>
+                  <Clock className='h-5 w-5 text-amber-600' />
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-amber-700'>
+                    Período Total
+                  </p>
+                  <p className='text-lg font-bold text-amber-900'>
+                    {analysisResult.periodo_analise.total_dias} dia
+                    {analysisResult.periodo_analise.total_dias !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className='mt-4 rounded-lg bg-blue-50 p-4'>
+            <div className='flex items-start space-x-3'>
+              <div className='rounded-lg bg-blue-100 p-2'>
+                <BarChart3 className='h-5 w-5 text-blue-600' />
+              </div>
+              <div>
+                <p className='text-sm font-medium text-blue-900'>
+                  Resumo do Período
+                </p>
+                <p className='mt-1 text-sm text-blue-700'>
+                  Foram analisadas{' '}
+                  <strong>{analysisResult.total_operacoes} operações</strong>{' '}
+                  executadas ao longo de{' '}
+                  <strong>
+                    {analysisResult.dias_operados} dias de negociação
+                  </strong>{' '}
+                  no período de{' '}
+                  <strong>{analysisResult.periodo_analise.data_inicial}</strong>{' '}
+                  até{' '}
+                  <strong>{analysisResult.periodo_analise.data_final}</strong>.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* YLOS Trading Rules Analysis */}
         <div className='card p-6'>
           <div className='mb-6 flex items-center justify-between'>
@@ -845,8 +987,10 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
               <span>Análise Detalhada das Regras YLOS</span>
             </h3>
             <div className='flex items-center space-x-2'>
-                             <YlosLogo size={32} className="opacity-60" />
-              <span className='text-sm text-gray-500 font-medium'>YLOS Trading</span>
+              <YlosLogo size={32} className='opacity-60' />
+              <span className='text-sm font-medium text-gray-500'>
+                YLOS Trading
+              </span>
             </div>
           </div>
 
@@ -955,7 +1099,9 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
 
                     <div className='flex items-center justify-between'>
                       <span className='text-xs text-gray-600'>
-                        {rule.code === 'LIMITE_DIARIO_CONSISTENCIA' ? 'Máximo:' : 'Requerido:'}
+                        {rule.code === 'LIMITE_DIARIO_CONSISTENCIA'
+                          ? 'Máximo:'
+                          : 'Requerido:'}
                       </span>
                       <span className='text-xs text-gray-800'>
                         {typeof rule.required === 'number'
@@ -998,171 +1144,318 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                         </p>
                       </div>
                     </div>
-                    
+
                     {/* Botão Ver Detalhes se há operações afetadas */}
-                    {violacao.operacoes_afetadas && Array.isArray(violacao.operacoes_afetadas) && violacao.operacoes_afetadas.length > 0 && (
-                      <button
-                        onClick={() => toggleViolationDetails(violacao.codigo)}
-                        className='flex items-center space-x-1 text-sm text-red-600 hover:text-red-800 transition-colors'
-                      >
-                        <span>Ver Detalhes</span>
-                        {expandedViolations.has(violacao.codigo) ? (
-                          <ChevronUp className='h-4 w-4' />
-                        ) : (
-                          <ChevronDown className='h-4 w-4' />
-                        )}
-                      </button>
-                    )}
+                    {violacao.operacoes_afetadas &&
+                      Array.isArray(violacao.operacoes_afetadas) &&
+                      violacao.operacoes_afetadas.length > 0 && (
+                        <button
+                          onClick={() =>
+                            toggleViolationDetails(violacao.codigo)
+                          }
+                          className='flex items-center space-x-1 text-sm text-red-600 transition-colors hover:text-red-800'
+                        >
+                          <span>Ver Detalhes</span>
+                          {expandedViolations.has(violacao.codigo) ? (
+                            <ChevronUp className='h-4 w-4' />
+                          ) : (
+                            <ChevronDown className='h-4 w-4' />
+                          )}
+                        </button>
+                      )}
                   </div>
-                  
+
                   {/* Detalhes expandidos das operações */}
-                  {expandedViolations.has(violacao.codigo) && violacao.operacoes_afetadas && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className='mt-4 border-t border-red-200 pt-4'
-                    >
-                      <h5 className='mb-3 font-medium text-red-900'>
-                        Operações Afetadas ({violacao.operacoes_afetadas.length}):
-                      </h5>
-                      <div className='max-h-60 overflow-y-auto'>
-                        <div className='space-y-2'>
-                          {violacao.operacoes_afetadas.map((op: TradeOperation, opIndex: number) => {
-                            const formattedOp = formatOperation(op);
-                            return (
-                              <div
-                                key={opIndex}
-                                className='rounded-lg bg-white border border-red-200 p-4 text-xs'
-                              >
-                                {/* Basic Operation Info */}
-                                <div className='grid grid-cols-2 gap-2 md:grid-cols-5 mb-3'>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Ativo:</span>
-                                    <div className='text-red-800'>{formattedOp.ativo}</div>
-                                  </div>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Abertura:</span>
-                                    <div className='text-red-800'>{formattedOp.abertura}</div>
-                                  </div>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Fechamento:</span>
-                                    <div className='text-red-800'>{formattedOp.fechamento}</div>
-                                  </div>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Resultado:</span>
-                                    <div className={`font-medium ${
-                                      (typeof op.res_operacao === 'number' && op.res_operacao >= 0) ? 'text-green-600' : 'text-red-600'
-                                    }`}>
-                                      {formattedOp.resultado}
+                  {expandedViolations.has(violacao.codigo) &&
+                    violacao.operacoes_afetadas && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className='mt-4 border-t border-red-200 pt-4'
+                      >
+                        <h5 className='mb-3 font-medium text-red-900'>
+                          Operações Afetadas (
+                          {violacao.operacoes_afetadas.length}):
+                        </h5>
+                        <div className='max-h-60 overflow-y-auto'>
+                          <div className='space-y-2'>
+                            {violacao.operacoes_afetadas.map(
+                              (op: TradeOperation, opIndex: number) => {
+                                const formattedOp = formatOperation(op);
+                                return (
+                                  <div
+                                    key={opIndex}
+                                    className='rounded-lg border border-red-200 bg-white p-4 text-xs'
+                                  >
+                                    {/* Basic Operation Info */}
+                                    <div className='mb-3 grid grid-cols-2 gap-2 md:grid-cols-5'>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Ativo:
+                                        </span>
+                                        <div className='text-red-800'>
+                                          {formattedOp.ativo}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Abertura:
+                                        </span>
+                                        <div className='text-red-800'>
+                                          {formattedOp.abertura}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Fechamento:
+                                        </span>
+                                        <div className='text-red-800'>
+                                          {formattedOp.fechamento}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Resultado:
+                                        </span>
+                                        <div
+                                          className={`font-medium ${
+                                            typeof op.res_operacao ===
+                                              'number' && op.res_operacao >= 0
+                                              ? 'text-green-600'
+                                              : 'text-red-600'
+                                          }`}
+                                        >
+                                          {formattedOp.resultado}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Lado:
+                                        </span>
+                                        <div className='text-red-800'>
+                                          {formattedOp.lado}
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Lado:</span>
-                                    <div className='text-red-800'>{formattedOp.lado}</div>
-                                  </div>
-                                </div>
 
-                                {/* Economic Events Details - only for news violations */}
-                                {violacao.codigo === 'OPERACAO_NOTICIAS' && formattedOp.detectedNewsEvents.length > 0 && (
-                                  <div className='border-t border-red-200 pt-3 mt-3'>
-                                    <h6 className='font-semibold text-red-900 mb-2 flex items-center'>
-                                      <AlertTriangle className='h-4 w-4 mr-1' />
-                                      Eventos Econômicos Detectados:
-                                    </h6>
-                                    {formattedOp.detectedNewsEvents.map((eventDetail: any, eventIndex: number) => (
-                                      <div key={eventIndex} className='bg-red-50 border border-red-100 rounded-lg p-3 mb-2'>
-                                        <div className='flex items-start justify-between mb-2'>
-                                          <div>
-                                            <div className='font-semibold text-red-900 text-sm flex items-center'>
-                                              📈 {eventDetail.event.name}
-                                              <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${
-                                                eventDetail.confidenceLevel === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
-                                                eventDetail.confidenceLevel === 'HIGH_PROBABILITY' ? 'bg-blue-100 text-blue-800' :
-                                                eventDetail.confidenceLevel === 'ESTIMATED' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-gray-100 text-gray-800'
-                                              }`}>
-                                                {eventDetail.confidenceLevel === 'CONFIRMED' ? '✓ CONFIRMADO' :
-                                                 eventDetail.confidenceLevel === 'HIGH_PROBABILITY' ? '⚡ PROVÁVEL' :
-                                                 eventDetail.confidenceLevel === 'ESTIMATED' ? '⚠️ ESTIMADO' :
-                                                 '❌ SEM EVENTO'}
+                                    {/* Economic Events Details - only for news violations */}
+                                    {violacao.codigo === 'OPERACAO_NOTICIAS' &&
+                                      formattedOp.detectedNewsEvents.length >
+                                        0 && (
+                                        <div className='mt-3 border-t border-red-200 pt-3'>
+                                          <h6 className='mb-2 flex items-center font-semibold text-red-900'>
+                                            <AlertTriangle className='mr-1 h-4 w-4' />
+                                            Eventos Econômicos Detectados:
+                                          </h6>
+                                          {formattedOp.detectedNewsEvents.map(
+                                            (
+                                              eventDetail: EventDetail,
+                                              eventIndex: number,
+                                            ) => (
+                                              <div
+                                                key={eventIndex}
+                                                className='mb-2 rounded-lg border border-red-100 bg-red-50 p-3'
+                                              >
+                                                <div className='mb-2 flex items-start justify-between'>
+                                                  <div>
+                                                    <div className='flex items-center text-sm font-semibold text-red-900'>
+                                                      📈{' '}
+                                                      {eventDetail.event.name}
+                                                      <span
+                                                        className={`ml-2 rounded px-1.5 py-0.5 text-xs font-medium ${
+                                                          eventDetail.confidenceLevel ===
+                                                          'CONFIRMED'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : eventDetail.confidenceLevel ===
+                                                                'HIGH_PROBABILITY'
+                                                              ? 'bg-blue-100 text-blue-800'
+                                                              : eventDetail.confidenceLevel ===
+                                                                  'ESTIMATED'
+                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                : 'bg-gray-100 text-gray-800'
+                                                        }`}
+                                                      >
+                                                        {eventDetail.confidenceLevel ===
+                                                        'CONFIRMED'
+                                                          ? '✓ CONFIRMADO'
+                                                          : eventDetail.confidenceLevel ===
+                                                              'HIGH_PROBABILITY'
+                                                            ? '⚡ PROVÁVEL'
+                                                            : eventDetail.confidenceLevel ===
+                                                                'ESTIMATED'
+                                                              ? '⚠️ ESTIMADO'
+                                                              : '❌ SEM EVENTO'}
+                                                      </span>
+                                                    </div>
+                                                    <div className='mt-1 text-xs text-red-700'>
+                                                      <span className='font-medium'>
+                                                        Impacto:
+                                                      </span>{' '}
+                                                      {eventDetail.event.impact}{' '}
+                                                      |
+                                                      <span className='ml-2 font-medium'>
+                                                        Janela Detectada:
+                                                      </span>{' '}
+                                                      {
+                                                        eventDetail.detectedWindow
+                                                      }{' '}
+                                                      ({eventDetail.timeType})
+                                                    </div>
+                                                    <div className='mt-1 text-xs italic text-red-600'>
+                                                      📅{' '}
+                                                      {
+                                                        eventDetail.dateRationale
+                                                      }
+                                                    </div>
+                                                  </div>
+                                                  <span
+                                                    className={`rounded px-2 py-1 text-xs font-medium ${
+                                                      eventDetail.event
+                                                        .impact === 'EXTREMO'
+                                                        ? 'bg-red-600 text-white'
+                                                        : eventDetail.event
+                                                              .impact ===
+                                                            'MUITO ALTO'
+                                                          ? 'bg-red-500 text-white'
+                                                          : 'bg-orange-500 text-white'
+                                                    }`}
+                                                  >
+                                                    {eventDetail.event.impact}
+                                                  </span>
+                                                </div>
+
+                                                <div className='space-y-1 text-xs text-red-700'>
+                                                  <div>
+                                                    <span className='font-medium'>
+                                                      📊 Descrição:
+                                                    </span>{' '}
+                                                    {
+                                                      eventDetail.event
+                                                        .description
+                                                    }
+                                                  </div>
+                                                  <div>
+                                                    <span className='font-medium'>
+                                                      📅 Frequência:
+                                                    </span>{' '}
+                                                    {
+                                                      eventDetail.event
+                                                        .frequency
+                                                    }
+                                                  </div>
+                                                  <div>
+                                                    <span className='font-medium'>
+                                                      ⚡ Impacto no Mercado:
+                                                    </span>{' '}
+                                                    {
+                                                      eventDetail.event
+                                                        .market_impact
+                                                    }
+                                                  </div>
+                                                  <div className='mt-2 rounded border border-yellow-200 bg-yellow-50 p-2'>
+                                                    <span className='font-medium text-yellow-800'>
+                                                      💡 Recomendação YLOS:
+                                                    </span>
+                                                    <div className='mt-1 text-yellow-700'>
+                                                      {
+                                                        eventDetail.event
+                                                          .recommendation
+                                                      }
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ),
+                                          )}
+
+                                          <div className='mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3'>
+                                            <div className='text-xs text-blue-800'>
+                                              <span className='font-semibold'>
+                                                🔍 Por que isso é detectado?
                                               </span>
-                                            </div>
-                                            <div className='text-red-700 text-xs mt-1'>
-                                              <span className='font-medium'>Impacto:</span> {eventDetail.event.impact} | 
-                                              <span className='font-medium ml-2'>Janela Detectada:</span> {eventDetail.detectedWindow} ({eventDetail.timeType})
-                                            </div>
-                                            <div className='text-red-600 text-xs mt-1 italic'>
-                                              📅 {eventDetail.dateRationale}
+                                              <div className='mt-1'>
+                                                Sua posição estava ABERTA
+                                                durante o horário de release de
+                                                um evento econômico de alto
+                                                impacto. A YLOS Trading
+                                                recomenda evitar operações
+                                                durante esses momentos devido à
+                                                volatilidade extrema e
+                                                imprevisível que pode causar
+                                                perdas significativas.
+                                              </div>
                                             </div>
                                           </div>
-                                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                            eventDetail.event.impact === 'EXTREMO' ? 'bg-red-600 text-white' :
-                                            eventDetail.event.impact === 'MUITO ALTO' ? 'bg-red-500 text-white' :
-                                            'bg-orange-500 text-white'
-                                          }`}>
-                                            {eventDetail.event.impact}
-                                          </span>
-                                        </div>
-                                        
-                                        <div className='text-xs text-red-700 space-y-1'>
-                                          <div><span className='font-medium'>📊 Descrição:</span> {eventDetail.event.description}</div>
-                                          <div><span className='font-medium'>📅 Frequência:</span> {eventDetail.event.frequency}</div>
-                                          <div><span className='font-medium'>⚡ Impacto no Mercado:</span> {eventDetail.event.market_impact}</div>
-                                          <div className='bg-yellow-50 border border-yellow-200 rounded p-2 mt-2'>
-                                            <span className='font-medium text-yellow-800'>💡 Recomendação YLOS:</span>
-                                            <div className='text-yellow-700 mt-1'>{eventDetail.event.recommendation}</div>
+
+                                          <div className='mt-2 rounded-lg border border-orange-200 bg-orange-50 p-3'>
+                                            <div className='text-xs text-orange-800'>
+                                              <span className='font-semibold'>
+                                                ⚠️ Transparência sobre Precisão
+                                                dos Dados:
+                                              </span>
+                                              <div className='mt-1'>
+                                                <strong>
+                                                  LIMITAÇÃO ATUAL:
+                                                </strong>{' '}
+                                                Este sistema ainda não utiliza
+                                                uma API real de calendário
+                                                econômico. As detecções são
+                                                baseadas em:
+                                                <br />•{' '}
+                                                <strong>CONFIRMADO</strong>:
+                                                Datas conhecidas de eventos (ex:
+                                                reuniões FED programadas)
+                                                <br />•{' '}
+                                                <strong>PROVÁVEL</strong>:
+                                                Padrões típicos (ex: Claims às
+                                                quintas, NFP na 1ª sexta)
+                                                <br />•{' '}
+                                                <strong>ESTIMADO</strong>:
+                                                Horários típicos de eventos
+                                                (pode gerar falsos positivos)
+                                                <br />
+                                                <br />
+                                                Para máxima precisão, sempre
+                                                consulte calendários econômicos
+                                                oficiais.
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className='mt-2 rounded-lg border border-green-200 bg-green-50 p-3'>
+                                            <div className='text-xs text-green-800'>
+                                              <span className='font-semibold'>
+                                                ✅ Como evitar no futuro:
+                                              </span>
+                                              <div className='mt-1'>
+                                                1. Use um calendário econômico
+                                                (investing.com,
+                                                forexfactory.com)
+                                                <br />
+                                                2. Feche todas as posições 15
+                                                minutos antes de eventos de alto
+                                                impacto
+                                                <br />
+                                                3. Aguarde 30 minutos após o
+                                                release antes de reposicionar
+                                                <br />
+                                                4. Configure alertas para
+                                                eventos importantes no seu
+                                                celular
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    ))}
-                                    
-                                    <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3'>
-                                      <div className='text-blue-800 text-xs'>
-                                        <span className='font-semibold'>🔍 Por que isso é detectado?</span>
-                                        <div className='mt-1'>
-                                          Sua posição estava ABERTA durante o horário de release de um evento econômico de alto impacto. 
-                                          A YLOS Trading recomenda evitar operações durante esses momentos devido à 
-                                          volatilidade extrema e imprevisível que pode causar perdas significativas.
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className='bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2'>
-                                      <div className='text-orange-800 text-xs'>
-                                        <span className='font-semibold'>⚠️ Transparência sobre Precisão dos Dados:</span>
-                                        <div className='mt-1'>
-                                          <strong>LIMITAÇÃO ATUAL:</strong> Este sistema ainda não utiliza uma API real de calendário econômico. 
-                                          As detecções são baseadas em:
-                                          <br/>• <strong>CONFIRMADO</strong>: Datas conhecidas de eventos (ex: reuniões FED programadas)
-                                          <br/>• <strong>PROVÁVEL</strong>: Padrões típicos (ex: Claims às quintas, NFP na 1ª sexta)
-                                          <br/>• <strong>ESTIMADO</strong>: Horários típicos de eventos (pode gerar falsos positivos)
-                                          <br/><br/>
-                                          Para máxima precisão, sempre consulte calendários econômicos oficiais.
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className='bg-green-50 border border-green-200 rounded-lg p-3 mt-2'>
-                                      <div className='text-green-800 text-xs'>
-                                        <span className='font-semibold'>✅ Como evitar no futuro:</span>
-                                        <div className='mt-1'>
-                                          1. Use um calendário econômico (investing.com, forexfactory.com)<br/>
-                                          2. Feche todas as posições 15 minutos antes de eventos de alto impacto<br/>
-                                          3. Aguarde 30 minutos após o release antes de reposicionar<br/>
-                                          4. Configure alertas para eventos importantes no seu celular
-                                        </div>
-                                      </div>
-                                    </div>
+                                      )}
                                   </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                );
+                              },
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
+                      </motion.div>
+                    )}
                 </div>
               ))}
 
@@ -1183,175 +1476,599 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                         </p>
                       </div>
                     </div>
-                    
+
                     {/* Botão Ver Detalhes se há operações afetadas */}
-                    {violacao.operacoes_afetadas && Array.isArray(violacao.operacoes_afetadas) && violacao.operacoes_afetadas.length > 0 && (
-                      <button
-                        onClick={() => toggleViolationDetails(violacao.codigo)}
-                        className='flex items-center space-x-1 text-sm text-yellow-600 hover:text-yellow-800 transition-colors'
-                      >
-                        <span>Ver Detalhes</span>
-                        {expandedViolations.has(violacao.codigo) ? (
-                          <ChevronUp className='h-4 w-4' />
-                        ) : (
-                          <ChevronDown className='h-4 w-4' />
-                        )}
-                      </button>
-                    )}
+                    {violacao.operacoes_afetadas &&
+                      Array.isArray(violacao.operacoes_afetadas) &&
+                      violacao.operacoes_afetadas.length > 0 && (
+                        <button
+                          onClick={() =>
+                            toggleViolationDetails(violacao.codigo)
+                          }
+                          className='flex items-center space-x-1 text-sm text-yellow-600 transition-colors hover:text-yellow-800'
+                        >
+                          <span>Ver Detalhes</span>
+                          {expandedViolations.has(violacao.codigo) ? (
+                            <ChevronUp className='h-4 w-4' />
+                          ) : (
+                            <ChevronDown className='h-4 w-4' />
+                          )}
+                        </button>
+                      )}
                   </div>
-                  
+
                   {/* Detalhes expandidos das operações */}
-                  {expandedViolations.has(violacao.codigo) && violacao.operacoes_afetadas && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className='mt-4 border-t border-yellow-200 pt-4'
-                    >
-                      <h5 className='mb-3 font-medium text-yellow-900'>
-                        Operações Afetadas ({violacao.operacoes_afetadas.length}):
-                      </h5>
-                      <div className='max-h-60 overflow-y-auto'>
-                        <div className='space-y-2'>
-                          {violacao.operacoes_afetadas.map((op: TradeOperation, opIndex: number) => {
-                            const formattedOp = formatOperation(op);
-                            return (
-                              <div
-                                key={opIndex}
-                                className='rounded-lg bg-white border border-yellow-200 p-4 text-xs'
-                              >
-                                {/* Basic Operation Info */}
-                                <div className='grid grid-cols-2 gap-2 md:grid-cols-5 mb-3'>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Ativo:</span>
-                                    <div className='text-yellow-800'>{formattedOp.ativo}</div>
-                                  </div>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Abertura:</span>
-                                    <div className='text-yellow-800'>{formattedOp.abertura}</div>
-                                  </div>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Fechamento:</span>
-                                    <div className='text-yellow-800'>{formattedOp.fechamento}</div>
-                                  </div>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Resultado:</span>
-                                    <div className={`font-medium ${
-                                      op.res_operacao >= 0 ? 'text-green-600' : 'text-red-600'
-                                    }`}>
-                                      {formattedOp.resultado}
+                  {expandedViolations.has(violacao.codigo) &&
+                    violacao.operacoes_afetadas && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className='mt-4 border-t border-yellow-200 pt-4'
+                      >
+                        <h5 className='mb-3 font-medium text-yellow-900'>
+                          Operações Afetadas (
+                          {violacao.operacoes_afetadas.length}):
+                        </h5>
+                        <div className='max-h-60 overflow-y-auto'>
+                          <div className='space-y-2'>
+                            {violacao.operacoes_afetadas.map(
+                              (op: TradeOperation, opIndex: number) => {
+                                const formattedOp = formatOperation(op);
+                                return (
+                                  <div
+                                    key={opIndex}
+                                    className='rounded-lg border border-yellow-200 bg-white p-4 text-xs'
+                                  >
+                                    {/* Basic Operation Info */}
+                                    <div className='mb-3 grid grid-cols-2 gap-2 md:grid-cols-5'>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Ativo:
+                                        </span>
+                                        <div className='text-yellow-800'>
+                                          {formattedOp.ativo}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Abertura:
+                                        </span>
+                                        <div className='text-yellow-800'>
+                                          {formattedOp.abertura}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Fechamento:
+                                        </span>
+                                        <div className='text-yellow-800'>
+                                          {formattedOp.fechamento}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Resultado:
+                                        </span>
+                                        <div
+                                          className={`font-medium ${
+                                            op.res_operacao >= 0
+                                              ? 'text-green-600'
+                                              : 'text-red-600'
+                                          }`}
+                                        >
+                                          {formattedOp.resultado}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <span className='font-medium text-gray-600'>
+                                          Lado:
+                                        </span>
+                                        <div className='text-yellow-800'>
+                                          {formattedOp.lado}
+                                        </div>
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div>
-                                    <span className='font-medium text-gray-600'>Lado:</span>
-                                    <div className='text-yellow-800'>{formattedOp.lado}</div>
-                                  </div>
-                                </div>
 
-                                {/* Economic Events Details - only for news violations */}
-                                {violacao.codigo === 'OPERACAO_NOTICIAS' && formattedOp.detectedNewsEvents.length > 0 && (
-                                  <div className='border-t border-yellow-200 pt-3 mt-3'>
-                                    <h6 className='font-semibold text-yellow-900 mb-2 flex items-center'>
-                                      <AlertTriangle className='h-4 w-4 mr-1' />
-                                      Eventos Econômicos Detectados:
-                                    </h6>
-                                    {formattedOp.detectedNewsEvents.map((eventDetail: any, eventIndex: number) => (
-                                      <div key={eventIndex} className='bg-yellow-50 border border-yellow-100 rounded-lg p-3 mb-2'>
-                                        <div className='flex items-start justify-between mb-2'>
-                                          <div>
-                                            <div className='font-semibold text-yellow-900 text-sm flex items-center'>
-                                              📈 {eventDetail.event.name}
-                                              <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${
-                                                eventDetail.confidenceLevel === 'CONFIRMED' ? 'bg-green-100 text-green-800' :
-                                                eventDetail.confidenceLevel === 'HIGH_PROBABILITY' ? 'bg-blue-100 text-blue-800' :
-                                                eventDetail.confidenceLevel === 'ESTIMATED' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-gray-100 text-gray-800'
-                                              }`}>
-                                                {eventDetail.confidenceLevel === 'CONFIRMED' ? '✓ CONFIRMADO' :
-                                                 eventDetail.confidenceLevel === 'HIGH_PROBABILITY' ? '⚡ PROVÁVEL' :
-                                                 eventDetail.confidenceLevel === 'ESTIMATED' ? '⚠️ ESTIMADO' :
-                                                 '❌ SEM EVENTO'}
+                                    {/* Economic Events Details - only for news violations */}
+                                    {violacao.codigo === 'OPERACAO_NOTICIAS' &&
+                                      formattedOp.detectedNewsEvents.length >
+                                        0 && (
+                                        <div className='mt-3 border-t border-yellow-200 pt-3'>
+                                          <h6 className='mb-2 flex items-center font-semibold text-yellow-900'>
+                                            <AlertTriangle className='mr-1 h-4 w-4' />
+                                            Eventos Econômicos Detectados:
+                                          </h6>
+                                          {formattedOp.detectedNewsEvents.map(
+                                            (
+                                              eventDetail: EventDetail,
+                                              eventIndex: number,
+                                            ) => (
+                                              <div
+                                                key={eventIndex}
+                                                className='mb-2 rounded-lg border border-yellow-100 bg-yellow-50 p-3'
+                                              >
+                                                <div className='mb-2 flex items-start justify-between'>
+                                                  <div>
+                                                    <div className='flex items-center text-sm font-semibold text-yellow-900'>
+                                                      📈{' '}
+                                                      {eventDetail.event.name}
+                                                      <span
+                                                        className={`ml-2 rounded px-1.5 py-0.5 text-xs font-medium ${
+                                                          eventDetail.confidenceLevel ===
+                                                          'CONFIRMED'
+                                                            ? 'bg-green-100 text-green-800'
+                                                            : eventDetail.confidenceLevel ===
+                                                                'HIGH_PROBABILITY'
+                                                              ? 'bg-blue-100 text-blue-800'
+                                                              : eventDetail.confidenceLevel ===
+                                                                  'ESTIMATED'
+                                                                ? 'bg-yellow-100 text-yellow-800'
+                                                                : 'bg-gray-100 text-gray-800'
+                                                        }`}
+                                                      >
+                                                        {eventDetail.confidenceLevel ===
+                                                        'CONFIRMED'
+                                                          ? '✓ CONFIRMADO'
+                                                          : eventDetail.confidenceLevel ===
+                                                              'HIGH_PROBABILITY'
+                                                            ? '⚡ PROVÁVEL'
+                                                            : eventDetail.confidenceLevel ===
+                                                                'ESTIMATED'
+                                                              ? '⚠️ ESTIMADO'
+                                                              : '❌ SEM EVENTO'}
+                                                      </span>
+                                                    </div>
+                                                    <div className='mt-1 text-xs text-yellow-700'>
+                                                      <span className='font-medium'>
+                                                        Impacto:
+                                                      </span>{' '}
+                                                      {eventDetail.event.impact}{' '}
+                                                      |
+                                                      <span className='ml-2 font-medium'>
+                                                        Janela Detectada:
+                                                      </span>{' '}
+                                                      {
+                                                        eventDetail.detectedWindow
+                                                      }{' '}
+                                                      ({eventDetail.timeType})
+                                                    </div>
+                                                    <div className='mt-1 text-xs italic text-yellow-600'>
+                                                      📅{' '}
+                                                      {
+                                                        eventDetail.dateRationale
+                                                      }
+                                                    </div>
+                                                  </div>
+                                                  <span
+                                                    className={`rounded px-2 py-1 text-xs font-medium ${
+                                                      eventDetail.event
+                                                        .impact === 'EXTREMO'
+                                                        ? 'bg-red-600 text-white'
+                                                        : eventDetail.event
+                                                              .impact ===
+                                                            'MUITO ALTO'
+                                                          ? 'bg-red-500 text-white'
+                                                          : 'bg-orange-500 text-white'
+                                                    }`}
+                                                  >
+                                                    {eventDetail.event.impact}
+                                                  </span>
+                                                </div>
+
+                                                <div className='space-y-1 text-xs text-yellow-700'>
+                                                  <div>
+                                                    <span className='font-medium'>
+                                                      📊 Descrição:
+                                                    </span>{' '}
+                                                    {
+                                                      eventDetail.event
+                                                        .description
+                                                    }
+                                                  </div>
+                                                  <div>
+                                                    <span className='font-medium'>
+                                                      📅 Frequência:
+                                                    </span>{' '}
+                                                    {
+                                                      eventDetail.event
+                                                        .frequency
+                                                    }
+                                                  </div>
+                                                  <div>
+                                                    <span className='font-medium'>
+                                                      ⚡ Impacto no Mercado:
+                                                    </span>{' '}
+                                                    {
+                                                      eventDetail.event
+                                                        .market_impact
+                                                    }
+                                                  </div>
+                                                  <div className='mt-2 rounded border border-blue-200 bg-blue-50 p-2'>
+                                                    <span className='font-medium text-blue-800'>
+                                                      💡 Recomendação YLOS:
+                                                    </span>
+                                                    <div className='mt-1 text-blue-700'>
+                                                      {
+                                                        eventDetail.event
+                                                          .recommendation
+                                                      }
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ),
+                                          )}
+
+                                          <div className='mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3'>
+                                            <div className='text-xs text-blue-800'>
+                                              <span className='font-semibold'>
+                                                🔍 Por que isso é detectado?
                                               </span>
-                                            </div>
-                                            <div className='text-yellow-700 text-xs mt-1'>
-                                              <span className='font-medium'>Impacto:</span> {eventDetail.event.impact} | 
-                                              <span className='font-medium ml-2'>Janela Detectada:</span> {eventDetail.detectedWindow} ({eventDetail.timeType})
-                                            </div>
-                                            <div className='text-yellow-600 text-xs mt-1 italic'>
-                                              📅 {eventDetail.dateRationale}
+                                              <div className='mt-1'>
+                                                Sua posição estava ABERTA
+                                                durante o horário de release de
+                                                um evento econômico de alto
+                                                impacto. Em contas Instant
+                                                Funding isso é um alerta, mas
+                                                recomenda-se evitar para melhor
+                                                gestão de risco.
+                                              </div>
                                             </div>
                                           </div>
-                                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                            eventDetail.event.impact === 'EXTREMO' ? 'bg-red-600 text-white' :
-                                            eventDetail.event.impact === 'MUITO ALTO' ? 'bg-red-500 text-white' :
-                                            'bg-orange-500 text-white'
-                                          }`}>
-                                            {eventDetail.event.impact}
-                                          </span>
-                                        </div>
-                                        
-                                        <div className='text-xs text-yellow-700 space-y-1'>
-                                          <div><span className='font-medium'>📊 Descrição:</span> {eventDetail.event.description}</div>
-                                          <div><span className='font-medium'>📅 Frequência:</span> {eventDetail.event.frequency}</div>
-                                          <div><span className='font-medium'>⚡ Impacto no Mercado:</span> {eventDetail.event.market_impact}</div>
-                                          <div className='bg-blue-50 border border-blue-200 rounded p-2 mt-2'>
-                                            <span className='font-medium text-blue-800'>💡 Recomendação YLOS:</span>
-                                            <div className='text-blue-700 mt-1'>{eventDetail.event.recommendation}</div>
+
+                                          <div className='mt-2 rounded-lg border border-orange-200 bg-orange-50 p-3'>
+                                            <div className='text-xs text-orange-800'>
+                                              <span className='font-semibold'>
+                                                ⚠️ Transparência sobre Precisão
+                                                dos Dados:
+                                              </span>
+                                              <div className='mt-1'>
+                                                <strong>
+                                                  LIMITAÇÃO ATUAL:
+                                                </strong>{' '}
+                                                Este sistema ainda não utiliza
+                                                uma API real de calendário
+                                                econômico. As detecções são
+                                                baseadas em:
+                                                <br />•{' '}
+                                                <strong>CONFIRMADO</strong>:
+                                                Datas conhecidas de eventos (ex:
+                                                reuniões FED programadas)
+                                                <br />•{' '}
+                                                <strong>PROVÁVEL</strong>:
+                                                Padrões típicos (ex: Claims às
+                                                quintas, NFP na 1ª sexta)
+                                                <br />•{' '}
+                                                <strong>ESTIMADO</strong>:
+                                                Horários típicos de eventos
+                                                (pode gerar falsos positivos)
+                                                <br />
+                                                <br />
+                                                Para máxima precisão, sempre
+                                                consulte calendários econômicos
+                                                oficiais.
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className='mt-2 rounded-lg border border-green-200 bg-green-50 p-3'>
+                                            <div className='text-xs text-green-800'>
+                                              <span className='font-semibold'>
+                                                ✅ Como evitar no futuro:
+                                              </span>
+                                              <div className='mt-1'>
+                                                1. Use um calendário econômico
+                                                (investing.com,
+                                                forexfactory.com)
+                                                <br />
+                                                2. Feche todas as posições 15
+                                                minutos antes de eventos de alto
+                                                impacto
+                                                <br />
+                                                3. Aguarde 30 minutos após o
+                                                release antes de reposicionar
+                                                <br />
+                                                4. Configure alertas para
+                                                eventos importantes no seu
+                                                celular
+                                              </div>
+                                            </div>
                                           </div>
                                         </div>
-                                      </div>
-                                    ))}
-                                    
-                                    <div className='bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3'>
-                                      <div className='text-blue-800 text-xs'>
-                                        <span className='font-semibold'>🔍 Por que isso é detectado?</span>
-                                        <div className='mt-1'>
-                                          Sua posição estava ABERTA durante o horário de release de um evento econômico de alto impacto. 
-                                          Em contas Instant Funding isso é um alerta, mas recomenda-se evitar para melhor gestão de risco.
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className='bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2'>
-                                      <div className='text-orange-800 text-xs'>
-                                        <span className='font-semibold'>⚠️ Transparência sobre Precisão dos Dados:</span>
-                                        <div className='mt-1'>
-                                          <strong>LIMITAÇÃO ATUAL:</strong> Este sistema ainda não utiliza uma API real de calendário econômico. 
-                                          As detecções são baseadas em:
-                                          <br/>• <strong>CONFIRMADO</strong>: Datas conhecidas de eventos (ex: reuniões FED programadas)
-                                          <br/>• <strong>PROVÁVEL</strong>: Padrões típicos (ex: Claims às quintas, NFP na 1ª sexta)
-                                          <br/>• <strong>ESTIMADO</strong>: Horários típicos de eventos (pode gerar falsos positivos)
-                                          <br/><br/>
-                                          Para máxima precisão, sempre consulte calendários econômicos oficiais.
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className='bg-green-50 border border-green-200 rounded-lg p-3 mt-2'>
-                                      <div className='text-green-800 text-xs'>
-                                        <span className='font-semibold'>✅ Como evitar no futuro:</span>
-                                        <div className='mt-1'>
-                                          1. Use um calendário econômico (investing.com, forexfactory.com)<br/>
-                                          2. Feche todas as posições 15 minutos antes de eventos de alto impacto<br/>
-                                          3. Aguarde 30 minutos após o release antes de reposicionar<br/>
-                                          4. Configure alertas para eventos importantes no seu celular
-                                        </div>
-                                      </div>
-                                    </div>
+                                      )}
                                   </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                );
+                              },
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  )}
+                      </motion.div>
+                    )}
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Visualizador de Operações */}
+        <div className='card p-6'>
+          <div className='mb-6 flex items-center justify-between'>
+            <h3 className='flex items-center space-x-2 text-xl font-semibold text-gray-900'>
+              <FileText className='h-6 w-6 text-blue-600' />
+              <span>Operações Analisadas</span>
+            </h3>
+            <div className='flex items-center space-x-2'>
+              <YlosLogo size={32} className='opacity-60' />
+              <span className='text-sm font-medium text-gray-500'>
+                Visualização Detalhada
+              </span>
+            </div>
+          </div>
+
+          {/* Filtros e Resumo */}
+          <div className='mb-6 grid grid-cols-1 gap-4 md:grid-cols-4'>
+            <div className='rounded-lg bg-gradient-to-br from-green-50 to-green-100 p-4'>
+              <div className='flex items-center space-x-3'>
+                <div className='rounded-lg bg-green-100 p-2'>
+                  <CheckCircle className='h-5 w-5 text-green-600' />
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-green-700'>
+                    Aprovadas
+                  </p>
+                  <p className='text-lg font-bold text-green-900'>
+                    {
+                      analysisResult.operacoes_detalhadas.filter(
+                        (op) => op.status === 'APROVADA',
+                      ).length
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className='rounded-lg bg-gradient-to-br from-yellow-50 to-yellow-100 p-4'>
+              <div className='flex items-center space-x-3'>
+                <div className='rounded-lg bg-yellow-100 p-2'>
+                  <AlertTriangle className='h-5 w-5 text-yellow-600' />
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-yellow-700'>
+                    Warnings
+                  </p>
+                  <p className='text-lg font-bold text-yellow-900'>
+                    {
+                      analysisResult.operacoes_detalhadas.filter(
+                        (op) => op.status === 'WARNING',
+                      ).length
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className='rounded-lg bg-gradient-to-br from-red-50 to-red-100 p-4'>
+              <div className='flex items-center space-x-3'>
+                <div className='rounded-lg bg-red-100 p-2'>
+                  <XCircle className='h-5 w-5 text-red-600' />
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-red-700'>Reprovadas</p>
+                  <p className='text-lg font-bold text-red-900'>
+                    {
+                      analysisResult.operacoes_detalhadas.filter(
+                        (op) => op.status === 'REPROVADA',
+                      ).length
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className='rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 p-4'>
+              <div className='flex items-center space-x-3'>
+                <div className='rounded-lg bg-blue-100 p-2'>
+                  <BarChart3 className='h-5 w-5 text-blue-600' />
+                </div>
+                <div>
+                  <p className='text-sm font-medium text-blue-700'>Total</p>
+                  <p className='text-lg font-bold text-blue-900'>
+                    {analysisResult.operacoes_detalhadas.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Lista de Operações */}
+          <div className='overflow-hidden rounded-lg border border-gray-200'>
+            <div className='border-b border-gray-200 bg-gray-50 px-6 py-3'>
+              <div className='grid grid-cols-8 gap-4 text-xs font-medium uppercase tracking-wider text-gray-600'>
+                <div className='col-span-1'>Status</div>
+                <div className='col-span-1'>Ativo</div>
+                <div className='col-span-2'>Abertura</div>
+                <div className='col-span-2'>Fechamento</div>
+                <div className='col-span-1'>Resultado</div>
+                <div className='col-span-1'>Lado</div>
+              </div>
+            </div>
+
+            <div className='max-h-96 overflow-y-auto'>
+              {analysisResult.operacoes_detalhadas.map((operacao, _index) => {
+                const getStatusIcon = (status: string) => {
+                  switch (status) {
+                    case 'APROVADA':
+                      return <CheckCircle className='h-4 w-4 text-green-600' />;
+                    case 'WARNING':
+                      return (
+                        <AlertTriangle className='h-4 w-4 text-yellow-600' />
+                      );
+                    case 'REPROVADA':
+                      return <XCircle className='h-4 w-4 text-red-600' />;
+                    default:
+                      return <CheckCircle className='h-4 w-4 text-gray-400' />;
+                  }
+                };
+
+                const getStatusBg = (status: string) => {
+                  switch (status) {
+                    case 'APROVADA':
+                      return 'bg-green-50 hover:bg-green-100';
+                    case 'WARNING':
+                      return 'bg-yellow-50 hover:bg-yellow-100';
+                    case 'REPROVADA':
+                      return 'bg-red-50 hover:bg-red-100';
+                    default:
+                      return 'bg-white hover:bg-gray-50';
+                  }
+                };
+
+                return (
+                  <div
+                    key={operacao.id}
+                    className={`border-b border-gray-200 px-6 py-4 transition-colors ${getStatusBg(operacao.status)}`}
+                  >
+                    <div className='grid grid-cols-8 items-center gap-4'>
+                      <div className='col-span-1 flex items-center space-x-2'>
+                        {getStatusIcon(operacao.status)}
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            operacao.status === 'APROVADA'
+                              ? 'bg-green-100 text-green-800'
+                              : operacao.status === 'WARNING'
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {operacao.status === 'APROVADA'
+                            ? 'OK'
+                            : operacao.status === 'WARNING'
+                              ? 'WARN'
+                              : 'NOK'}
+                        </span>
+                      </div>
+
+                      <div className='col-span-1'>
+                        <span className='text-sm font-medium text-gray-900'>
+                          {operacao.ativo}
+                        </span>
+                      </div>
+
+                      <div className='col-span-2'>
+                        <span className='text-sm text-gray-700'>
+                          {operacao.abertura}
+                        </span>
+                      </div>
+
+                      <div className='col-span-2'>
+                        <span className='text-sm text-gray-700'>
+                          {operacao.fechamento}
+                        </span>
+                      </div>
+
+                      <div className='col-span-1'>
+                        <span
+                          className={`text-sm font-medium ${
+                            operacao.resultado >= 0
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                          }`}
+                        >
+                          ${operacao.resultado.toFixed(2)}
+                        </span>
+                      </div>
+
+                      <div className='col-span-1'>
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            operacao.lado === 'C'
+                              ? 'bg-blue-100 text-blue-800'
+                              : 'bg-purple-100 text-purple-800'
+                          }`}
+                        >
+                          {operacao.lado === 'C' ? 'COMPRA' : 'VENDA'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Detalhes das violações quando existir */}
+                    {operacao.violacoes.length > 0 && (
+                      <div className='mt-3 border-t border-gray-200 pt-3'>
+                        <div className='flex items-start space-x-2'>
+                          <AlertTriangle
+                            className={`mt-0.5 h-4 w-4 ${
+                              operacao.status === 'REPROVADA'
+                                ? 'text-red-500'
+                                : 'text-yellow-500'
+                            }`}
+                          />
+                          <div>
+                            <p
+                              className={`text-xs font-medium ${
+                                operacao.status === 'REPROVADA'
+                                  ? 'text-red-800'
+                                  : 'text-yellow-800'
+                              }`}
+                            >
+                              {operacao.descricao_status}
+                            </p>
+                            {operacao.violacoes.length > 0 && (
+                              <div className='mt-1'>
+                                <span className='text-xs text-gray-600'>
+                                  Violações:{' '}
+                                </span>
+                                <span
+                                  className={`text-xs ${
+                                    operacao.status === 'REPROVADA'
+                                      ? 'text-red-700'
+                                      : 'text-yellow-700'
+                                  }`}
+                                >
+                                  {operacao.violacoes.join(', ')}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Legenda */}
+          <div className='mt-4 rounded-lg bg-gray-50 p-4'>
+            <h4 className='mb-3 text-sm font-medium text-gray-900'>
+              Legenda de Status:
+            </h4>
+            <div className='grid grid-cols-1 gap-3 text-xs md:grid-cols-3'>
+              <div className='flex items-center space-x-2'>
+                <CheckCircle className='h-4 w-4 text-green-600' />
+                <span className='text-gray-700'>
+                  <strong>APROVADA:</strong> Operação em conformidade total com
+                  as regras YLOS
+                </span>
+              </div>
+              <div className='flex items-center space-x-2'>
+                <AlertTriangle className='h-4 w-4 text-yellow-600' />
+                <span className='text-gray-700'>
+                  <strong>WARNING:</strong> Operação com alertas, mas não impede
+                  saque
+                </span>
+              </div>
+              <div className='flex items-center space-x-2'>
+                <XCircle className='h-4 w-4 text-red-600' />
+                <span className='text-gray-700'>
+                  <strong>REPROVADA:</strong> Operação viola regras críticas
+                  YLOS
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Professional Recommendations & Action Plan */}
         <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>

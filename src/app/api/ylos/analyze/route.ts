@@ -27,6 +27,22 @@ interface AnalysisResult {
   lucro_total: number;
   maior_lucro_dia: number;
   consistencia_40_percent: boolean;
+  periodo_analise: {
+    data_inicial: string;
+    data_final: string;
+    total_dias: number;
+  };
+  operacoes_detalhadas: Array<{
+    id: string;
+    ativo: string;
+    abertura: string;
+    fechamento: string;
+    lado: 'C' | 'V';
+    resultado: number;
+    status: 'APROVADA' | 'REPROVADA' | 'WARNING';
+    violacoes: string[];
+    descricao_status: string;
+  }>;
   violacoes: Array<{
     codigo: string;
     titulo: string;
@@ -480,17 +496,20 @@ function analyzeYLOSRules(
         // Determine if we're in Daylight Saving Time (March-November in US)
         const month = abertura.getMonth() + 1; // 1-based month
         const isDST = month >= 3 && month <= 11; // Approximate DST period
-        
+
         // NY Opening windows in Brazil time (15 minutes before and after 9:30 AM NY)
         // DST: 9:15-9:45 AM NY = 10:15-10:45 AM Brazil
         // Standard: 9:15-9:45 AM NY = 11:15-11:45 AM Brazil
         const windowStart = isDST ? 615 : 675; // 10:15 AM (DST) or 11:15 AM (Standard)
-        const windowEnd = isDST ? 645 : 705;   // 10:45 AM (DST) or 11:45 AM (Standard)
-        
+        const windowEnd = isDST ? 645 : 705; // 10:45 AM (DST) or 11:45 AM (Standard)
+
         // Check if position was open during the prohibited window
-        const hasOverlap = (aberturaMinutes <= windowEnd && fechamentoMinutes >= windowStart);
-        
-        const timezoneName = isDST ? 'Daylight Saving Time (DST)' : 'Standard Time';
+        const hasOverlap =
+          aberturaMinutes <= windowEnd && fechamentoMinutes >= windowStart;
+
+        const timezoneName = isDST
+          ? 'Daylight Saving Time (DST)'
+          : 'Standard Time';
         const windowBrazil = isDST ? '10:15-10:45' : '11:15-11:45';
 
         const hasViolation = hasOverlap;
@@ -529,7 +548,7 @@ function analyzeYLOSRules(
       const isDST = month >= 3 && month <= 11;
       const windowBrazil = isDST ? '10:15-10:45' : '11:15-11:45';
       const timezoneName = isDST ? 'Horário de Verão NY' : 'Horário Padrão NY';
-      
+
       violacoes.push({
         codigo: 'ABERTURA_NY',
         titulo: 'Posições abertas durante abertura NY detectadas',
@@ -550,10 +569,9 @@ function analyzeYLOSRules(
   // Rule 8: Check for positions open during high-impact economic news events (prohibited for Master Funded)
   // ENTERPRISE SOLUTION: Real economic calendar integration with actual event verification
   if (contaType === 'MASTER_FUNDED') {
-    
     // TODO: Integrate with real economic calendar API (ForexFactory, Investing.com, etc.)
     // For now, we use a hybrid approach: static events + date-aware logic
-    
+
     // Define high-impact economic events with specific times and descriptions
     // NOTE: This is currently a template - should be replaced with real API data
     const economicEvents = [
@@ -563,10 +581,13 @@ function analyzeYLOSRules(
         time_brazil_std: '10:30', // NY Standard Time
         time_brazil_dst: '09:30', // NY Daylight Time
         impact: 'MUITO ALTO',
-        description: 'Relatório de emprego dos EUA - Um dos indicadores econômicos mais importantes do mundo',
+        description:
+          'Relatório de emprego dos EUA - Um dos indicadores econômicos mais importantes do mundo',
         frequency: 'Primeira sexta-feira do mês',
-        market_impact: 'Causa volatilidade extrema no USD, índices e commodities',
-        recommendation: 'Feche todas as posições 15 minutos antes e aguarde 30 minutos após o release'
+        market_impact:
+          'Causa volatilidade extrema no USD, índices e commodities',
+        recommendation:
+          'Feche todas as posições 15 minutos antes e aguarde 30 minutos após o release',
       },
       {
         name: 'Consumer Price Index (CPI)',
@@ -574,10 +595,12 @@ function analyzeYLOSRules(
         time_brazil_std: '10:30',
         time_brazil_dst: '09:30',
         impact: 'MUITO ALTO',
-        description: 'Índice de Preços ao Consumidor dos EUA - Principal medida de inflação',
+        description:
+          'Índice de Preços ao Consumidor dos EUA - Principal medida de inflação',
         frequency: 'Mensal, geralmente entre os dias 10-15',
-        market_impact: 'Impacta decisões do FED sobre juros, causa volatilidade em bonds e USD',
-        recommendation: 'Evite estar posicionado durante o horário de release'
+        market_impact:
+          'Impacta decisões do FED sobre juros, causa volatilidade em bonds e USD',
+        recommendation: 'Evite estar posicionado durante o horário de release',
       },
       {
         name: 'Federal Reserve Interest Rate Decision',
@@ -588,7 +611,7 @@ function analyzeYLOSRules(
         description: 'Decisão de política monetária do Federal Reserve',
         frequency: '8 reuniões por ano (aproximadamente a cada 6 semanas)',
         market_impact: 'Move todos os mercados globais simultaneamente',
-        recommendation: 'PROIBIDO operar no dia da decisão do FED'
+        recommendation: 'PROIBIDO operar no dia da decisão do FED',
       },
       {
         name: 'Initial Jobless Claims',
@@ -598,8 +621,9 @@ function analyzeYLOSRules(
         impact: 'ALTO',
         description: 'Pedidos iniciais de auxílio-desemprego nos EUA',
         frequency: 'Semanal (toda quinta-feira)',
-        market_impact: 'Indicador líder da saúde do mercado de trabalho americano',
-        recommendation: 'Evite posições durante o release'
+        market_impact:
+          'Indicador líder da saúde do mercado de trabalho americano',
+        recommendation: 'Evite posições durante o release',
       },
       {
         name: 'Gross Domestic Product (GDP)',
@@ -607,10 +631,11 @@ function analyzeYLOSRules(
         time_brazil_std: '10:30',
         time_brazil_dst: '09:30',
         impact: 'ALTO',
-        description: 'Produto Interno Bruto dos EUA - medida principal da atividade econômica',
+        description:
+          'Produto Interno Bruto dos EUA - medida principal da atividade econômica',
         frequency: 'Trimestral (dados preliminar, revisado e final)',
         market_impact: 'Confirma tendências econômicas, impacta USD e índices',
-        recommendation: 'Monitore volatilidade 15 minutos antes e depois'
+        recommendation: 'Monitore volatilidade 15 minutos antes e depois',
       },
       {
         name: 'ISM Manufacturing PMI',
@@ -621,123 +646,163 @@ function analyzeYLOSRules(
         description: 'Índice de Gerentes de Compras do setor manufatureiro',
         frequency: 'Mensal (primeiro dia útil do mês)',
         market_impact: 'Indicador líder da saúde da manufatura americana',
-        recommendation: 'Feche posições 10 minutos antes do release'
-      }
+        recommendation: 'Feche posições 10 minutos antes do release',
+      },
     ];
 
     const newsViolationsWithDetails = operations.filter((op) => {
       const abertura = parseDate(op.abertura);
       const fechamento = parseDate(op.fechamento);
 
-             const checkSpecificNewsEvent = (startDate: Date, endDate: Date) => {
-         const results = [];
-         
-         // ENTERPRISE ENHANCEMENT: Add date-specific validation for known events
-         const operationDate = startDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-         const dayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-         const dayOfMonth = startDate.getDate();
-         const month = startDate.getMonth() + 1; // 1-based month
+      const checkSpecificNewsEvent = (startDate: Date, endDate: Date) => {
+        const results = [];
 
-         for (const event of economicEvents) {
-           // Smart filtering: Only check events that could realistically occur on this date
-           let shouldCheckEvent = false;
-           let confidenceLevel = 'ESTIMATED'; // vs 'CONFIRMED'
-           let dateRationale = '';
+        // ENTERPRISE ENHANCEMENT: Add date-specific validation for known events
+        const operationDate = startDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        const dayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        const dayOfMonth = startDate.getDate();
+        const _month = startDate.getMonth() + 1; // 1-based month
 
-           if (event.name === 'Initial Jobless Claims') {
-             // Claims are released every Thursday at 8:30 AM ET
-             shouldCheckEvent = dayOfWeek === 4; // Thursday
-             confidenceLevel = 'HIGH_PROBABILITY';
-             dateRationale = dayOfWeek === 4 ? 'Quinta-feira é dia típico do Claims' : 'Claims não ocorre neste dia';
-           } else if (event.name === 'Non-Farm Payrolls (NFP)') {
-             // NFP is first Friday of the month
-             const firstFriday = getFirstFridayOfMonth(startDate);
-             shouldCheckEvent = dayOfWeek === 5 && dayOfMonth <= 7; // First Friday
-             confidenceLevel = shouldCheckEvent ? 'HIGH_PROBABILITY' : 'LOW_PROBABILITY';
-             dateRationale = shouldCheckEvent ? 'Primeira sexta-feira do mês (típico do NFP)' : 'NFP só ocorre na primeira sexta-feira';
-           } else if (event.name === 'Federal Reserve Interest Rate Decision') {
-             // FED meetings are scheduled - we can add known dates here
-             const fedMeetingDates2024 = ['2024-01-31', '2024-03-20', '2024-05-01', '2024-06-12', '2024-07-31', '2024-09-18', '2024-11-07', '2024-12-18'];
-             const fedMeetingDates2025 = ['2025-01-29', '2025-03-19', '2025-04-30', '2025-06-11', '2025-07-30', '2025-09-17', '2025-11-06', '2025-12-17'];
-             const allFedDates = [...fedMeetingDates2024, ...fedMeetingDates2025];
-             shouldCheckEvent = allFedDates.includes(operationDate);
-             confidenceLevel = shouldCheckEvent ? 'CONFIRMED' : 'NO_EVENT';
-             dateRationale = shouldCheckEvent ? 'Data confirmada de reunião do FED' : 'Não há reunião do FED nesta data';
-           } else {
-             // For other events (CPI, GDP, PMI), we use probability-based logic
-             shouldCheckEvent = true; // Check all for now, but flag as estimated
-             confidenceLevel = 'ESTIMATED';
-             dateRationale = 'Verificação baseada em horário típico (data não confirmada)';
-           }
+        for (const event of economicEvents) {
+          // Smart filtering: Only check events that could realistically occur on this date
+          let shouldCheckEvent = false;
+          let confidenceLevel = 'ESTIMATED'; // vs 'CONFIRMED'
+          let dateRationale = '';
 
-           // Only process if event could occur on this date
-           if (shouldCheckEvent || confidenceLevel === 'ESTIMATED') {
-             // Check both standard and daylight time windows
-             const stdTimeMinutes = timeStringToMinutes(event.time_brazil_std);
-             const dstTimeMinutes = timeStringToMinutes(event.time_brazil_dst);
-             
-             // Create 10-minute windows around each event (5 minutes before and after)
-             const stdWindowStart = stdTimeMinutes - 5;
-             const stdWindowEnd = stdTimeMinutes + 5;
-             const dstWindowStart = dstTimeMinutes - 5;
-             const dstWindowEnd = dstTimeMinutes + 5;
+          if (event.name === 'Initial Jobless Claims') {
+            // Claims are released every Thursday at 8:30 AM ET
+            shouldCheckEvent = dayOfWeek === 4; // Thursday
+            confidenceLevel = 'HIGH_PROBABILITY';
+            dateRationale =
+              dayOfWeek === 4
+                ? 'Quinta-feira é dia típico do Claims'
+                : 'Claims não ocorre neste dia';
+          } else if (event.name === 'Non-Farm Payrolls (NFP)') {
+            // NFP is first Friday of the month
+            const _firstFriday = getFirstFridayOfMonth(startDate);
+            shouldCheckEvent = dayOfWeek === 5 && dayOfMonth <= 7; // First Friday
+            confidenceLevel = shouldCheckEvent
+              ? 'HIGH_PROBABILITY'
+              : 'LOW_PROBABILITY';
+            dateRationale = shouldCheckEvent
+              ? 'Primeira sexta-feira do mês (típico do NFP)'
+              : 'NFP só ocorre na primeira sexta-feira';
+          } else if (event.name === 'Federal Reserve Interest Rate Decision') {
+            // FED meetings are scheduled - we can add known dates here
+            const fedMeetingDates2024 = [
+              '2024-01-31',
+              '2024-03-20',
+              '2024-05-01',
+              '2024-06-12',
+              '2024-07-31',
+              '2024-09-18',
+              '2024-11-07',
+              '2024-12-18',
+            ];
+            const fedMeetingDates2025 = [
+              '2025-01-29',
+              '2025-03-19',
+              '2025-04-30',
+              '2025-06-11',
+              '2025-07-30',
+              '2025-09-17',
+              '2025-11-06',
+              '2025-12-17',
+            ];
+            const allFedDates = [
+              ...fedMeetingDates2024,
+              ...fedMeetingDates2025,
+            ];
+            shouldCheckEvent = allFedDates.includes(operationDate);
+            confidenceLevel = shouldCheckEvent ? 'CONFIRMED' : 'NO_EVENT';
+            dateRationale = shouldCheckEvent
+              ? 'Data confirmada de reunião do FED'
+              : 'Não há reunião do FED nesta data';
+          } else {
+            // For other events (CPI, GDP, PMI), we use probability-based logic
+            shouldCheckEvent = true; // Check all for now, but flag as estimated
+            confidenceLevel = 'ESTIMATED';
+            dateRationale =
+              'Verificação baseada em horário típico (data não confirmada)';
+          }
 
-             const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
-             const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+          // Only process if event could occur on this date
+          if (shouldCheckEvent || confidenceLevel === 'ESTIMATED') {
+            // Check both standard and daylight time windows
+            const stdTimeMinutes = timeStringToMinutes(event.time_brazil_std);
+            const dstTimeMinutes = timeStringToMinutes(event.time_brazil_dst);
 
-             // Check if position was open during either time window
-             const overlapStd = (startMinutes <= stdWindowEnd && endMinutes >= stdWindowStart);
-             const overlapDst = (startMinutes <= dstWindowEnd && endMinutes >= dstWindowStart);
+            // Create 10-minute windows around each event (5 minutes before and after)
+            const stdWindowStart = stdTimeMinutes - 5;
+            const stdWindowEnd = stdTimeMinutes + 5;
+            const dstWindowStart = dstTimeMinutes - 5;
+            const dstWindowEnd = dstTimeMinutes + 5;
 
-             if (overlapStd || overlapDst) {
-               const detectedWindow = overlapStd ? 
-                 `${minutesToTimeString(stdWindowStart)}-${minutesToTimeString(stdWindowEnd)}` :
-                 `${minutesToTimeString(dstWindowStart)}-${minutesToTimeString(dstWindowEnd)}`;
+            const startMinutes =
+              startDate.getHours() * 60 + startDate.getMinutes();
+            const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
 
-               results.push({
-                 event,
-                 detectedWindow,
-                 timeType: overlapStd ? 'Horário Padrão NY' : 'Horário de Verão NY',
-                 confidenceLevel, // NEW: Add confidence level
-                 dateRationale,   // NEW: Add explanation
-                 operationDate    // NEW: Add operation date for reference
-               });
+            // Check if position was open during either time window
+            const overlapStd =
+              startMinutes <= stdWindowEnd && endMinutes >= stdWindowStart;
+            const overlapDst =
+              startMinutes <= dstWindowEnd && endMinutes >= dstWindowStart;
 
-               enterpriseLogger.debug(
-                 `Economic news event overlap detected`,
-                 { ...context, requestId },
-                 {
-                   ativo: op.ativo,
-                   eventName: event.name,
-                   eventTime: overlapStd ? event.time_brazil_std : event.time_brazil_dst,
-                   positionStart: `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`,
-                   positionEnd: `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`,
-                   impact: event.impact,
-                   detectedWindow,
-                   confidenceLevel,
-                   dateRationale,
-                   operationDate
-                 },
-               );
-             }
-           }
-         }
+            if (overlapStd || overlapDst) {
+              const detectedWindow = overlapStd
+                ? `${minutesToTimeString(stdWindowStart)}-${minutesToTimeString(stdWindowEnd)}`
+                : `${minutesToTimeString(dstWindowStart)}-${minutesToTimeString(dstWindowEnd)}`;
 
-         return results;
-       };
-       
-       // Helper function to get first Friday of month
-       function getFirstFridayOfMonth(date: Date): number {
-         const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
-         const firstDayOfWeek = firstDay.getDay();
-         const daysToFirstFriday = (5 - firstDayOfWeek + 7) % 7;
-         return 1 + daysToFirstFriday;
-       }
+              results.push({
+                event,
+                detectedWindow,
+                timeType: overlapStd
+                  ? 'Horário Padrão NY'
+                  : 'Horário de Verão NY',
+                confidenceLevel, // NEW: Add confidence level
+                dateRationale, // NEW: Add explanation
+                operationDate, // NEW: Add operation date for reference
+              });
+
+              enterpriseLogger.debug(
+                `Economic news event overlap detected`,
+                { ...context, requestId },
+                {
+                  ativo: op.ativo,
+                  eventName: event.name,
+                  eventTime: overlapStd
+                    ? event.time_brazil_std
+                    : event.time_brazil_dst,
+                  positionStart: `${startDate.getHours().toString().padStart(2, '0')}:${startDate.getMinutes().toString().padStart(2, '0')}`,
+                  positionEnd: `${endDate.getHours().toString().padStart(2, '0')}:${endDate.getMinutes().toString().padStart(2, '0')}`,
+                  impact: event.impact,
+                  detectedWindow,
+                  confidenceLevel,
+                  dateRationale,
+                  operationDate,
+                },
+              );
+            }
+          }
+        }
+
+        return results;
+      };
+
+      // Helper function to get first Friday of month
+      function getFirstFridayOfMonth(date: Date): number {
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        const firstDayOfWeek = firstDay.getDay();
+        const daysToFirstFriday = (5 - firstDayOfWeek + 7) % 7;
+        return 1 + daysToFirstFriday;
+      }
 
       const detectedEvents = checkSpecificNewsEvent(abertura, fechamento);
       if (detectedEvents.length > 0) {
         // Add the detected events to the operation for detailed reporting
-        (op as any).detectedNewsEvents = detectedEvents;
+        (
+          op as TradeOperation & { detectedNewsEvents: unknown[] }
+        ).detectedNewsEvents = detectedEvents;
         return true;
       }
       return false;
@@ -746,11 +811,21 @@ function analyzeYLOSRules(
     if (newsViolationsWithDetails.length > 0) {
       // Create detailed description with specific events
       const allDetectedEvents = newsViolationsWithDetails
-        .flatMap(op => (op as any).detectedNewsEvents || [])
-        .map(detail => detail.event.name)
+        .flatMap(
+          (op) =>
+            (
+              op as TradeOperation & {
+                detectedNewsEvents?: Array<{ event: { name: string } }>;
+              }
+            ).detectedNewsEvents || [],
+        )
+        .map((detail) => detail.event.name)
         .filter((name, index, arr) => arr.indexOf(name) === index); // Remove duplicates
 
-      const eventsList = allDetectedEvents.length > 0 ? allDetectedEvents.join(', ') : 'eventos econômicos de alto impacto';
+      const eventsList =
+        allDetectedEvents.length > 0
+          ? allDetectedEvents.join(', ')
+          : 'eventos econômicos de alto impacto';
 
       violacoes.push({
         codigo: 'OPERACAO_NOTICIAS',
@@ -904,6 +979,79 @@ function analyzeYLOSRules(
     );
   }
 
+  // Calcular período de análise
+  const datas = operations.map((op) => parseDate(op.abertura));
+  const dataInicial = new Date(Math.min(...datas.map((d) => d.getTime())));
+  const dataFinal = new Date(Math.max(...datas.map((d) => d.getTime())));
+  const totalDias =
+    Math.ceil(
+      (dataFinal.getTime() - dataInicial.getTime()) / (1000 * 60 * 60 * 24),
+    ) + 1;
+
+  const periodo_analise = {
+    data_inicial: dataInicial.toLocaleDateString('pt-BR'),
+    data_final: dataFinal.toLocaleDateString('pt-BR'),
+    total_dias: totalDias,
+  };
+
+  // Criar mapa de operações com violações para determinar status
+  const operacoesComViolacoes = new Map<string, string[]>();
+
+  violacoes.forEach((violacao) => {
+    if (violacao.operacoes_afetadas) {
+      (violacao.operacoes_afetadas as TradeOperation[]).forEach((op) => {
+        const key = `${op.ativo}-${op.abertura}-${op.fechamento}`;
+        if (!operacoesComViolacoes.has(key)) {
+          operacoesComViolacoes.set(key, []);
+        }
+        operacoesComViolacoes.get(key)?.push(violacao.titulo);
+      });
+    }
+  });
+
+  // Processar operações detalhadas
+  const operacoes_detalhadas = operations.map((op, index) => {
+    const key = `${op.ativo}-${op.abertura}-${op.fechamento}`;
+    const violacoesOp = operacoesComViolacoes.get(key) || [];
+
+    let status: 'APROVADA' | 'REPROVADA' | 'WARNING' = 'APROVADA';
+    let descricao_status = 'Operação está em conformidade com as regras YLOS';
+
+    if (violacoesOp.length > 0) {
+      // Verificar se tem violações críticas
+      const temCritica = violacoes.some(
+        (v) =>
+          v.severidade === 'CRITICAL' &&
+          v.operacoes_afetadas &&
+          (v.operacoes_afetadas as TradeOperation[]).some(
+            (opAfetada) =>
+              `${opAfetada.ativo}-${opAfetada.abertura}-${opAfetada.fechamento}` ===
+              key,
+          ),
+      );
+
+      if (temCritica) {
+        status = 'REPROVADA';
+        descricao_status = `Operação viola regras críticas: ${violacoesOp.join(', ')}`;
+      } else {
+        status = 'WARNING';
+        descricao_status = `Operação com alertas: ${violacoesOp.join(', ')}`;
+      }
+    }
+
+    return {
+      id: `op-${index + 1}`,
+      ativo: op.ativo,
+      abertura: op.abertura,
+      fechamento: op.fechamento,
+      lado: op.lado,
+      resultado: op.res_operacao,
+      status,
+      violacoes: violacoesOp,
+      descricao_status,
+    };
+  });
+
   const aprovado =
     violacoes.filter((v) => v.severidade === 'CRITICAL').length === 0;
 
@@ -915,6 +1063,8 @@ function analyzeYLOSRules(
     lucro_total: lucroTotal,
     maior_lucro_dia: maiorLucroDia,
     consistencia_40_percent,
+    periodo_analise,
+    operacoes_detalhadas,
     violacoes,
     recomendacoes,
     proximos_passos,
