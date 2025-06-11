@@ -294,7 +294,8 @@ function analyzeYLOSRules(
 
   // Group operations by day
   const operationsByDay = new Map<string, TradeOperation[]>();
-  const resultsByDay = new Map<string, number>();
+  const resultsByDay = new Map<string, number>(); // Net result (for winning days calculation)
+  const dailyProfitsByDay = new Map<string, number>(); // Total profits only (for YLOS consistency rule)
 
   for (const op of operations) {
     const date = parseDate(op.abertura);
@@ -303,21 +304,32 @@ function analyzeYLOSRules(
     if (!operationsByDay.has(dayKey)) {
       operationsByDay.set(dayKey, []);
       resultsByDay.set(dayKey, 0);
+      dailyProfitsByDay.set(dayKey, 0);
     }
 
     const dayOps = operationsByDay.get(dayKey);
     if (dayOps) {
       dayOps.push(op);
     }
+
+    // Net result (used for winning days calculation)
     resultsByDay.set(dayKey, (resultsByDay.get(dayKey) || 0) + op.res_operacao);
+
+    // YLOS Rule: Only count PROFITS for consistency rule (ignore losses)
+    // Se você perde $100 e ganha $1000, o ganho é $1000, não $900
+    if (op.res_operacao > 0) {
+      dailyProfitsByDay.set(
+        dayKey,
+        (dailyProfitsByDay.get(dayKey) || 0) + op.res_operacao,
+      );
+    }
   }
 
   const diasOperados = operationsByDay.size;
   const lucroTotal = operations.reduce((sum, op) => sum + op.res_operacao, 0);
-  const maiorLucroDia = Math.max(
-    ...Array.from(resultsByDay.values()).filter((v) => v > 0),
-    0,
-  );
+
+  // YLOS Rule: For consistency rule, use only the profits (not net result)
+  const maiorLucroDia = Math.max(...Array.from(dailyProfitsByDay.values()), 0);
 
   // YLOS Official Rules Implementation
   const minDays = contaType === 'MASTER_FUNDED' ? 10 : 5;
@@ -367,23 +379,29 @@ function analyzeYLOSRules(
   }
 
   // Rule 3: Consistency rule - nenhum dia pode representar mais que % do lucro total
+  // YLOS Rule: Use only profits for consistency calculation (ignore losses per day)
+  const totalProfitsOnly = Array.from(dailyProfitsByDay.values()).reduce(
+    (sum, profit) => sum + profit,
+    0,
+  );
+
   let consistencia_40_percent = true;
-  if (lucroTotal > 0 && maiorLucroDia > 0) {
-    const percentualMelhorDia = (maiorLucroDia / lucroTotal) * 100;
+  if (totalProfitsOnly > 0 && maiorLucroDia > 0) {
+    const percentualMelhorDia = (maiorLucroDia / totalProfitsOnly) * 100;
 
     if (percentualMelhorDia > maxDayPercentage) {
       consistencia_40_percent = false;
       violacoes.push({
         codigo: 'CONSISTENCIA',
         titulo: 'Regra de consistência violada',
-        descricao: `Nenhum dia pode representar mais de ${maxDayPercentage}% do lucro total. Seu melhor dia representa ${percentualMelhorDia.toFixed(2)}% ($${maiorLucroDia.toFixed(2)} de $${lucroTotal.toFixed(2)}).`,
+        descricao: `Nenhum dia pode representar mais de ${maxDayPercentage}% do lucro total. Seu melhor dia de ganhos representa ${percentualMelhorDia.toFixed(2)}% ($${maiorLucroDia.toFixed(2)} de $${totalProfitsOnly.toFixed(2)} em ganhos totais, conforme regra YLOS que considera apenas ganhos positivos).`,
         severidade: 'CRITICAL',
       });
       enterpriseLogger.ylosRuleViolation(
         requestId,
         'CONSISTENCIA',
         'CRITICAL',
-        `Dia representou ${percentualMelhorDia.toFixed(2)}% do lucro total`,
+        `Dia representou ${percentualMelhorDia.toFixed(2)}% dos ganhos totais`,
         context,
       );
     }
@@ -400,25 +418,45 @@ function analyzeYLOSRules(
     300000: 7600, // 300K account (estimated)
   };
 
+  // Determine account size based on current balance (find closest account size)
+  const determineAccountSize = (balance: number): number => {
+    const accountSizes = [25000, 50000, 100000, 150000, 250000, 300000];
+
+    // For balances within reasonable range of standard account sizes
+    for (const size of accountSizes) {
+      // If balance is within reasonable profit range of account size (up to 50% profit)
+      if (balance >= size * 0.95 && balance <= size * 1.5) {
+        return size;
+      }
+    }
+
+    // If no match found, find the closest account size
+    return accountSizes.reduce((prev, curr) =>
+      Math.abs(curr - balance) < Math.abs(prev - balance) ? curr : prev,
+    );
+  };
+
+  const accountSize = determineAccountSize(saldoAtual);
   const withdrawalThreshold =
-    withdrawalThresholds[saldoAtual] || saldoAtual * 0.052; // fallback to ~5.2% if not found
+    withdrawalThresholds[accountSize] || saldoAtual * 0.052;
   const consistencyPercentage = contaType === 'MASTER_FUNDED' ? 0.4 : 0.3;
   const dailyProfitLimit = withdrawalThreshold * consistencyPercentage;
 
-  resultsByDay.forEach((result, day) => {
-    if (result > dailyProfitLimit) {
+  // YLOS Rule: Check daily profit limit using only profits (not net result)
+  dailyProfitsByDay.forEach((dailyProfits, day) => {
+    if (dailyProfits > dailyProfitLimit) {
       violacoes.push({
         codigo: 'LIMITE_DIARIO_CONSISTENCIA',
         titulo: 'Limite diário de lucro excedido (Regra Consistência)',
-        descricao: `No dia ${day}, o lucro de $${result.toFixed(2)} excedeu o limite diário de $${dailyProfitLimit.toFixed(2)} (baseado na regra de consistência: meta colchão $${withdrawalThreshold.toFixed(2)} x ${consistencyPercentage * 100}%).`,
+        descricao: `No dia ${day}, os ganhos totais de $${dailyProfits.toFixed(2)} excederam o limite diário de $${dailyProfitLimit.toFixed(2)} (baseado na regra de consistência: meta colchão $${withdrawalThreshold.toFixed(2)} x ${consistencyPercentage * 100}%). YLOS considera apenas ganhos positivos, independente de perdas no mesmo dia.`,
         severidade: 'CRITICAL',
-        valor_impacto: result - dailyProfitLimit,
+        valor_impacto: dailyProfits - dailyProfitLimit,
       });
       enterpriseLogger.ylosRuleViolation(
         requestId,
         'LIMITE_DIARIO_CONSISTENCIA',
         'CRITICAL',
-        `Lucro diário de $${result.toFixed(2)} excedeu limite de $${dailyProfitLimit.toFixed(2)}`,
+        `Ganhos diários de $${dailyProfits.toFixed(2)} excederam limite de $${dailyProfitLimit.toFixed(2)}`,
         context,
       );
     }

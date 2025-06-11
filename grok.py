@@ -148,8 +148,16 @@ def analyze_operations():
     days_operated = len(daily_profits)
     winning_days = len(daily_profits[daily_profits["Res. Operação"] >= min_winning_amount])
 
-    # Calcular lucro total no período do CSV
+    # YLOS Rule: Calcular apenas ganhos positivos por dia (ignora perdas do mesmo dia)
+    # Se você perde $100 e ganha $1000, o ganho é $1000, não $900
+    df_positive = df[df["Res. Operação"] > 0]
+    daily_profits_only = df_positive.groupby("Date")["Res. Operação"].sum().reset_index()
+    
+    # Calcular lucro total no período do CSV (resultado líquido)
     total_profit_csv = df["Res. Operação"].sum()
+    
+    # Calcular total de ganhos apenas (sem perdas, conforme regra YLOS)
+    total_profits_only = df_positive["Res. Operação"].sum()
 
     # Calcular corretagem
     total_contracts = (df["Qtd Compra"] + df["Qtd Venda"]).sum()
@@ -159,9 +167,9 @@ def analyze_operations():
     # Verificar saldo mínimo para saque
     balance_meets_requirement = current_balance >= min_balance_for_withdrawal
 
-    # Verificar regra de consistência
-    max_day_profit = daily_profits["Res. Operação"].max()
-    consistency_percentage = (max_day_profit / total_profit_csv) if total_profit_csv > 0 else 0
+    # Verificar regra de consistência (YLOS usa apenas ganhos positivos)
+    max_day_profit = daily_profits_only["Res. Operação"].max() if len(daily_profits_only) > 0 else 0
+    consistency_percentage = (max_day_profit / total_profits_only) if total_profits_only > 0 else 0
     consistency_violation = consistency_percentage > consistency_limit
 
     # Verificar P/L Drawdown
@@ -246,7 +254,8 @@ def analyze_operations():
     print(f"**Dias Operados**: {days_operated} (Mínimo: {min_days_operated})")
     print(f"**Dias Vencedores**: {winning_days} (Mínimo: {min_winning_days}, com pelo menos US${min_winning_amount})")
     print(f"**Regra de Consistência ({consistency_limit*100}%):** {'Violada' if consistency_violation else 'Conforme'}")
-    print(f"  - Maior dia de lucro: US${max_day_profit:,.2f} ({consistency_percentage*100:.2f}% do total)")
+    print(f"  - Maior dia de ganhos: US${max_day_profit:,.2f} ({consistency_percentage*100:.2f}% dos ganhos totais)")
+    print(f"  - YLOS considera apenas ganhos positivos (US${total_profits_only:,.2f}), ignora perdas do mesmo dia")
     print(f"**P/L Drawdown**: {'Violada' if pl_drawdown_violation else 'Conforme'}")
     print(f"  - Limite de perda por trade: US${pl_drawdown_limit:,.2f}")
     print(f"**Risco x Retorno**: {'Violada' if risk_return_violation else 'Conforme'}")
@@ -318,8 +327,9 @@ def analyze_operations():
     if not balance_meets_requirement:
         print(f"- Aumente seu saldo em US${min_balance_for_withdrawal - current_balance:,.2f} para atingir o mínimo.")
     if consistency_violation:
-        additional_profit_needed = (max_day_profit / consistency_limit) - total_profit_csv
-        print(f"- Para corrigir a regra de consistência, acumule mais US${additional_profit_needed:,.2f} em outros dias.")
+        additional_profit_needed = (max_day_profit / consistency_limit) - total_profits_only
+        print(f"- Para corrigir a regra de consistência, acumule mais US${additional_profit_needed:,.2f} em ganhos em outros dias.")
+        print(f"  NOTA: YLOS considera apenas ganhos positivos. Se você perder $100 e ganhar $1000 no mesmo dia, conta como $1000 de ganho.")
     if market_open_violations:
         print("- Evite operar durante a abertura do mercado de NY (9:30 AM NY, janela de 9:25 AM a 9:35 AM NY).")
     print("- Verifique manualmente eventos noticiosos de alto impacto para evitar operar durante esses períodos.")

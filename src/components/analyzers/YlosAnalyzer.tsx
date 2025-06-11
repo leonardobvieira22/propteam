@@ -23,6 +23,12 @@ import {
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
+import '../../styles/dailyAnalysis.css';
+
+import DailyAnalysisModal from './DailyAnalysisModal';
+
+import { TradeOperation as DailyTradeOperation } from '@/types/dailyAnalysis';
+
 interface YlosAnalyzerProps {
   onBack?: () => void;
 }
@@ -172,6 +178,8 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
   const [expandedViolations, setExpandedViolations] = useState<Set<string>>(
     new Set(),
   );
+  const [showDailyAnalysis, setShowDailyAnalysis] = useState(false);
+  const [operations, setOperations] = useState<DailyTradeOperation[]>([]);
 
   const toggleViolationDetails = (codigo: string) => {
     setExpandedViolations((prev) => {
@@ -197,6 +205,46 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         (op as TradeOperation & { detectedNewsEvents?: EventDetail[] })
           .detectedNewsEvents || [],
     };
+  };
+
+  const parseCSVOperations = (csvContent: string): DailyTradeOperation[] => {
+    try {
+      const lines = csvContent.split('\n').filter((line) => line.trim());
+      if (lines.length <= 1) return [];
+
+      const headers = lines[0]
+        .split(',')
+        .map((h) => h.trim().replace(/"/g, ''));
+      const operations: DailyTradeOperation[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i]
+          .split(',')
+          .map((v) => v.trim().replace(/"/g, ''));
+        if (values.length < headers.length) continue;
+
+        const op: DailyTradeOperation = {
+          ativo: values[headers.indexOf('Ativo')] || '',
+          abertura: values[headers.indexOf('Abertura')] || '',
+          fechamento: values[headers.indexOf('Fechamento')] || '',
+          res_operacao: parseFloat(
+            values[headers.indexOf('Res. Operação')] || '0',
+          ),
+          lado: values[headers.indexOf('Lado')] || '',
+        };
+
+        operations.push(op);
+      }
+
+      return operations;
+    } catch (error) {
+      // Log error only in development environment
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.error('Error parsing CSV operations:', error);
+      }
+      return [];
+    }
   };
 
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -268,6 +316,11 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       }
 
       const result = await response.json();
+
+      // Parse operations from CSV content for daily analysis
+      const parsedOperations = parseCSVOperations(csvContent);
+      setOperations(parsedOperations);
+
       setAnalysisResult(result);
       setStep('results');
     } catch (err) {
@@ -580,9 +633,28 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       300000: 7600, // 300K account (estimated)
     };
 
+    // Determine account size based on current balance (find closest account size)
+    const determineAccountSize = (balance: number): number => {
+      const accountSizes = [25000, 50000, 100000, 150000, 250000, 300000];
+
+      // For balances within reasonable range of standard account sizes
+      for (const size of accountSizes) {
+        // If balance is within reasonable profit range of account size (up to 50% profit)
+        if (balance >= size * 0.95 && balance <= size * 1.5) {
+          return size;
+        }
+      }
+
+      // If no match found, find the closest account size
+      return accountSizes.reduce((prev, curr) =>
+        Math.abs(curr - balance) < Math.abs(prev - balance) ? curr : prev,
+      );
+    };
+
     const saldoAtualNum = parseFloat(formData.saldoAtual);
+    const accountSize = determineAccountSize(saldoAtualNum);
     const withdrawalThreshold =
-      withdrawalThresholds[saldoAtualNum] || saldoAtualNum * 0.052;
+      withdrawalThresholds[accountSize] || saldoAtualNum * 0.052;
     const consistencyDecimal =
       formData.contaType === 'MASTER_FUNDED' ? 0.4 : 0.3;
     const dailyProfitLimit = withdrawalThreshold * consistencyDecimal;
@@ -2207,7 +2279,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
             <span>Centro de Ações</span>
           </h3>
 
-          <div className='grid grid-cols-1 gap-4 md:grid-cols-3'>
+          <div className='grid grid-cols-1 gap-4 md:grid-cols-4'>
             {/* Nova Análise */}
             <button
               onClick={() => {
@@ -2226,6 +2298,22 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                 <div className='font-medium'>Nova Análise</div>
                 <div className='text-sm text-gray-300'>
                   Analisar outra conta
+                </div>
+              </div>
+            </button>
+
+            {/* Análise Diária */}
+            <button
+              onClick={() => setShowDailyAnalysis(true)}
+              className='flex items-center space-x-3 rounded-lg bg-purple-600 p-4 text-left transition-all duration-200 hover:bg-purple-700'
+            >
+              <div className='rounded-lg bg-white bg-opacity-20 p-2'>
+                <BarChart3 className='h-5 w-5' />
+              </div>
+              <div>
+                <div className='font-medium'>Análise por Dia</div>
+                <div className='text-sm text-purple-100'>
+                  Visualizar cards diários
                 </div>
               </div>
             </button>
@@ -2355,6 +2443,35 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         {step === 'analyzing' && renderAnalyzing()}
         {step === 'results' && renderResults()}
       </div>
+
+      {/* Daily Analysis Modal */}
+      {analysisResult && (
+        <DailyAnalysisModal
+          isOpen={showDailyAnalysis}
+          onClose={() => setShowDailyAnalysis(false)}
+          operations={operations}
+          accountType={formData.contaType}
+          withdrawalThreshold={(() => {
+            const balance = parseFloat(formData.saldoAtual);
+            const accountSizes = [25000, 50000, 100000, 150000, 250000, 300000];
+            const withdrawalThresholds: Record<number, number> = {
+              25000: 1600,
+              50000: 2600,
+              100000: 3100,
+              150000: 5100,
+              250000: 6600,
+              300000: 7600,
+            };
+
+            // Find closest account size
+            const accountSize = accountSizes.reduce((prev, curr) =>
+              Math.abs(curr - balance) < Math.abs(prev - balance) ? curr : prev,
+            );
+
+            return withdrawalThresholds[accountSize] || balance * 0.052;
+          })()}
+        />
+      )}
     </div>
   );
 }
