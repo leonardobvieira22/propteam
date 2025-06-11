@@ -16,7 +16,18 @@ export function useDailyAnalysis(
   filters: DailyAnalysisFilters,
 ) {
   const dailyAnalysis = useMemo(() => {
-    if (!operations || operations.length === 0) return [];
+    devLog.info('useDailyAnalysis called with:', {
+      operationsCount: operations?.length || 0,
+      accountType,
+      withdrawalThreshold,
+      filters,
+      operations: operations?.slice(0, 2), // Show first 2 operations
+    });
+
+    if (!operations || operations.length === 0) {
+      devLog.warn('No operations provided to useDailyAnalysis');
+      return [];
+    }
 
     // Parse date helper
     const parseDate = (dateStr: string): Date => {

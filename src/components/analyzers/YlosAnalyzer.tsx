@@ -211,25 +211,91 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
 
   const parseCSVOperations = (csvContent: string): DailyTradeOperation[] => {
     try {
+      devLog.info(
+        'parseCSVOperations called with content length:',
+        csvContent.length,
+      );
+
       const lines = csvContent.split('\n').filter((line) => line.trim());
-      if (lines.length <= 1) return [];
+      devLog.info('Lines after filtering:', lines.length);
+
+      if (lines.length <= 1) {
+        devLog.warn('Not enough lines in CSV:', lines.length);
+        return [];
+      }
+
+      // Detect separator (tab or comma)
+      const separator = lines[0].includes('\t') ? '\t' : ',';
 
       const headers = lines[0]
-        .split(',')
+        .split(separator)
         .map((h) => h.trim().replace(/"/g, ''));
+
+      devLog.info('CSV Headers detected:', headers);
+      devLog.info('Using separator:', separator === '\t' ? 'TAB' : 'COMMA');
+      devLog.info('First line raw:', lines[0]);
+
+      // Check if required headers exist
+      const requiredHeaders = [
+        'Ativo',
+        'Abertura',
+        'Fechamento',
+        'Res. Operação',
+        'Lado',
+      ];
+      const missingHeaders = requiredHeaders.filter(
+        (h) => headers.indexOf(h) === -1,
+      );
+      if (missingHeaders.length > 0) {
+        devLog.error('Missing required headers:', missingHeaders);
+        devLog.info('Available headers:', headers);
+        return [];
+      }
+
       const operations: DailyTradeOperation[] = [];
 
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i]
-          .split(',')
-          .map((v) => v.trim().replace(/"/g, ''));
-        if (values.length < headers.length) continue;
+        devLog.info(`Processing line ${i}:`, lines[i]);
 
-        const ativo = values[headers.indexOf('Ativo')] || '';
-        const abertura = values[headers.indexOf('Abertura')] || '';
-        const fechamento = values[headers.indexOf('Fechamento')] || '';
-        const resOperacaoStr = values[headers.indexOf('Res. Operação')] || '0';
-        const lado = values[headers.indexOf('Lado')] || '';
+        const values = lines[i]
+          .split(separator)
+          .map((v) => v.trim().replace(/"/g, ''));
+
+        devLog.info(`Line ${i} values:`, values);
+
+        if (values.length < headers.length) {
+          devLog.warn(
+            `Line ${i} has ${values.length} values but expected ${headers.length}`,
+          );
+          continue;
+        }
+
+        const ativoIndex = headers.indexOf('Ativo');
+        const aberturaIndex = headers.indexOf('Abertura');
+        const fechamentoIndex = headers.indexOf('Fechamento');
+        const resOperacaoIndex = headers.indexOf('Res. Operação');
+        const ladoIndex = headers.indexOf('Lado');
+
+        const ativo = values[ativoIndex] || '';
+        const abertura = values[aberturaIndex] || '';
+        const fechamento = values[fechamentoIndex] || '';
+        const resOperacaoStr = values[resOperacaoIndex] || '0';
+        const lado = values[ladoIndex] || '';
+
+        devLog.info(`Line ${i} extracted values:`, {
+          ativo,
+          abertura,
+          fechamento,
+          resOperacaoStr,
+          lado,
+          indexes: {
+            ativoIndex,
+            aberturaIndex,
+            fechamentoIndex,
+            resOperacaoIndex,
+            ladoIndex,
+          },
+        });
 
         // Validate data before creating operation
         if (!ativo || !abertura || !fechamento) {
@@ -237,13 +303,31 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
             ativo,
             abertura,
             fechamento,
+            line: i,
+            values: values.slice(0, 5), // Show first 5 values for debugging
           });
           continue;
         }
 
-        const resOperacao = parseFloat(resOperacaoStr);
+        // Clean and parse the result value (remove dots for thousands, replace comma with dot for decimal)
+        const cleanResOperacao = resOperacaoStr
+          .replace(/\./g, '')
+          .replace(',', '.');
+        const resOperacao = parseFloat(cleanResOperacao);
+
+        devLog.info(`Line ${i} result parsing:`, {
+          original: resOperacaoStr,
+          cleaned: cleanResOperacao,
+          parsed: resOperacao,
+          isNaN: isNaN(resOperacao),
+        });
+
         if (isNaN(resOperacao)) {
-          devLog.warn('Invalid result value:', resOperacaoStr);
+          devLog.warn('Invalid result value:', {
+            original: resOperacaoStr,
+            cleaned: cleanResOperacao,
+            line: i,
+          });
           continue;
         }
 
@@ -255,16 +339,17 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           lado,
         };
 
+        devLog.info(`Line ${i} created operation:`, op);
         operations.push(op);
       }
 
+      devLog.info(
+        `Successfully parsed ${operations.length} operations from ${lines.length - 1} lines`,
+      );
+      devLog.info('Final operations array:', operations);
       return operations;
     } catch (error) {
-      // Log error only in development environment
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error parsing CSV operations:', error);
-      }
+      devLog.error('Error parsing CSV operations:', error);
       return [];
     }
   };
@@ -340,7 +425,18 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       const result = await response.json();
 
       // Parse operations from CSV content for daily analysis
+      devLog.info(
+        'Starting CSV parsing with content length:',
+        csvContent.length,
+      );
+      devLog.info('CSV content preview:', csvContent.substring(0, 200));
+
       const parsedOperations = parseCSVOperations(csvContent);
+      devLog.info('Parsed operations result:', {
+        count: parsedOperations.length,
+        operations: parsedOperations,
+      });
+
       setOperations(parsedOperations);
 
       setAnalysisResult(result);
@@ -2331,6 +2427,8 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                 </div>
               </div>
             </button>
+
+            {/* Debug CSV Parsing */}
 
             {/* Análise Diária */}
             <button

@@ -43,6 +43,20 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
     filters,
   );
 
+  // Debug logging
+  React.useEffect(() => {
+    devLog.info('DailyAnalysisModal - Operations received:', {
+      count: operations.length,
+      operations: operations.slice(0, 3), // Show first 3 operations
+      accountType,
+      withdrawalThreshold,
+    });
+    devLog.info('DailyAnalysisModal - Analysis result:', {
+      dailyAnalysisCount: dailyAnalysis.length,
+      summary,
+    });
+  }, [operations, dailyAnalysis, summary, accountType, withdrawalThreshold]);
+
   // Close modal on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -372,8 +386,8 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
               </div>
             ) : (
               <div className='cards-grid grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6'>
-                {dailyAnalysis.map((day) => (
-                  <DayCard key={day.date} day={day} />
+                {dailyAnalysis.map((day, index) => (
+                  <DayCard key={`${day.date}-${index}`} day={day} />
                 ))}
               </div>
             )}
@@ -491,7 +505,7 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
                     <div className='space-y-2'>
                       {selectedDay.violations.map((violation, index) => (
                         <div
-                          key={index}
+                          key={`violation-${selectedDay.date}-${index}`}
                           className={`rounded-lg border p-3 ${
                             violation.severity === 'CRITICAL'
                               ? 'border-red-200 bg-red-50'
