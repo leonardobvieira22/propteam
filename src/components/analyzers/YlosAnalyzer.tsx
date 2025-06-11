@@ -417,6 +417,8 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
   );
 
   const handleAnalyze = async () => {
+    devLog.info('CRITICAL DEBUG - handleAnalyze called');
+
     if (!csvContent) {
       setError('Por favor, faça upload de um arquivo CSV');
       return;
@@ -426,6 +428,9 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     setStep('analyzing');
 
     try {
+      devLog.info(
+        'CRITICAL DEBUG - About to make API call to /api/ylos/analyze',
+      );
       const response = await fetch('/api/ylos/analyze', {
         method: 'POST',
         headers: {
@@ -447,15 +452,24 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       }
 
       const result = await response.json();
+      devLog.info('CRITICAL DEBUG - API response received successfully');
 
       // Parse operations from CSV content for daily analysis
       devLog.info(
-        'Starting CSV parsing with content length:',
+        'CRITICAL DEBUG - Starting CSV parsing with content length:',
         csvContent.length,
       );
-      devLog.info('CSV content preview:', csvContent.substring(0, 200));
+      devLog.info(
+        'CRITICAL DEBUG - CSV content preview:',
+        csvContent.substring(0, 200),
+      );
 
+      devLog.info('CRITICAL DEBUG - About to call parseCSVOperations...');
       const parsedOperations = parseCSVOperations(csvContent);
+      devLog.info('CRITICAL DEBUG - parseCSVOperations returned:', {
+        length: parsedOperations.length,
+        operations: parsedOperations,
+      });
       devLog.info('Parsed operations result:', {
         count: parsedOperations.length,
         operations: parsedOperations,
