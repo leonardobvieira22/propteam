@@ -330,7 +330,22 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           lado,
         };
 
-        devLog.info(`Line ${i} created operation:`, op);
+        devLog.info(`CRITICAL DEBUG - Line ${i} created operation:`, {
+          op,
+          hasAllFields: !!(
+            op.ativo &&
+            op.abertura &&
+            op.fechamento &&
+            typeof op.res_operacao === 'number'
+          ),
+          fieldTypes: {
+            ativo: typeof op.ativo,
+            abertura: typeof op.abertura,
+            fechamento: typeof op.fechamento,
+            res_operacao: typeof op.res_operacao,
+            lado: typeof op.lado,
+          },
+        });
         operations.push(op);
       }
 
@@ -426,6 +441,13 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       devLog.info('Parsed operations result:', {
         count: parsedOperations.length,
         operations: parsedOperations,
+      });
+
+      // CRITICAL DEBUG: Log exactly what we're setting
+      devLog.info('CRITICAL DEBUG - Setting operations state:', {
+        parsedOperationsLength: parsedOperations.length,
+        firstOperation: parsedOperations[0],
+        allOperations: parsedOperations,
       });
 
       setOperations(parsedOperations);
@@ -2421,7 +2443,15 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
 
             {/* Análise Diária */}
             <button
-              onClick={() => setShowDailyAnalysis(true)}
+              onClick={() => {
+                devLog.info('CRITICAL DEBUG - Opening Daily Analysis Modal:', {
+                  operationsLength: operations.length,
+                  operations: operations.slice(0, 2),
+                  operationsState: operations,
+                  hasAnalysisResult: !!analysisResult,
+                });
+                setShowDailyAnalysis(true);
+              }}
               className='flex items-center space-x-3 rounded-lg bg-purple-600 p-4 text-left transition-all duration-200 hover:bg-purple-700'
             >
               <div className='rounded-lg bg-white bg-opacity-20 p-2'>

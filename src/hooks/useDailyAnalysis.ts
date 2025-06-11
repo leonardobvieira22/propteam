@@ -16,16 +16,28 @@ export function useDailyAnalysis(
   filters: DailyAnalysisFilters,
 ) {
   const dailyAnalysis = useMemo(() => {
-    devLog.info('useDailyAnalysis called with:', {
+    devLog.info('CRITICAL DEBUG - useDailyAnalysis called with:', {
       operationsCount: operations?.length || 0,
       accountType,
       withdrawalThreshold,
       filters,
       operations: operations?.slice(0, 2), // Show first 2 operations
+      isOperationsArray: Array.isArray(operations),
+      operationsType: typeof operations,
+      operationsUndefined: operations === undefined,
+      operationsNull: operations === null,
     });
 
     if (!operations || operations.length === 0) {
-      devLog.warn('No operations provided to useDailyAnalysis');
+      devLog.error(
+        'CRITICAL DEBUG - No operations provided to useDailyAnalysis:',
+        {
+          operations,
+          operationsLength: operations?.length,
+          operationsType: typeof operations,
+          isArray: Array.isArray(operations),
+        },
+      );
       return [];
     }
 

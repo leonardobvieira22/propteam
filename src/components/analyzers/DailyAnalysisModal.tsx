@@ -45,15 +45,21 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
 
   // Analysis logging for development
   React.useEffect(() => {
-    devLog.info('DailyAnalysisModal - Operations received:', {
+    devLog.info('CRITICAL DEBUG - DailyAnalysisModal - Operations received:', {
       count: operations.length,
       operations: operations.slice(0, 3), // Show first 3 operations
       accountType,
       withdrawalThreshold,
+      isOperationsArray: Array.isArray(operations),
+      operationsType: typeof operations,
+      firstOperationStructure: operations[0]
+        ? Object.keys(operations[0])
+        : 'NO_OPERATIONS',
     });
-    devLog.info('DailyAnalysisModal - Analysis result:', {
+    devLog.info('CRITICAL DEBUG - DailyAnalysisModal - Analysis result:', {
       dailyAnalysisCount: dailyAnalysis.length,
       summary,
+      dailyAnalysisFirst: dailyAnalysis[0],
     });
   }, [operations, dailyAnalysis, summary, accountType, withdrawalThreshold]);
 
