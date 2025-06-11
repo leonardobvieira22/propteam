@@ -222,16 +222,44 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         return [];
       }
 
-      // Detect separator (tab or comma)
-      const separator = lines[0].includes('\t') ? '\t' : ',';
+      // Find the header line (contains "Ativo")
+      let headerLineIndex = -1;
+      let separator = ',';
 
-      const headers = lines[0]
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('Ativo')) {
+          headerLineIndex = i;
+          // Detect separator (semicolon, tab, or comma)
+          if (lines[i].includes(';')) {
+            separator = ';';
+          } else if (lines[i].includes('\t')) {
+            separator = '\t';
+          } else {
+            separator = ',';
+          }
+          break;
+        }
+      }
+
+      if (headerLineIndex === -1) {
+        devLog.error(
+          'CRITICAL DEBUG - Could not find header line with "Ativo"',
+        );
+        devLog.info('CRITICAL DEBUG - First 10 lines:', lines.slice(0, 10));
+        return [];
+      }
+
+      const headers = lines[headerLineIndex]
         .split(separator)
         .map((h) => h.trim().replace(/"/g, ''));
 
-      devLog.info('CSV Headers detected:', headers);
-      devLog.info('Using separator:', separator === '\t' ? 'TAB' : 'COMMA');
-      devLog.info('First line raw:', lines[0]);
+      devLog.info('CRITICAL DEBUG - CSV Headers detected:', headers);
+      devLog.info(
+        'CRITICAL DEBUG - Using separator:',
+        separator === ';' ? 'SEMICOLON' : separator === '\t' ? 'TAB' : 'COMMA',
+      );
+      devLog.info('CRITICAL DEBUG - Header line index:', headerLineIndex);
+      devLog.info('CRITICAL DEBUG - Header line raw:', lines[headerLineIndex]);
 
       // Check if required headers exist
       const requiredHeaders = [
@@ -258,7 +286,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
 
       const operations: TradeOperation[] = [];
 
-      for (let i = 1; i < lines.length; i++) {
+      for (let i = headerLineIndex + 1; i < lines.length; i++) {
         devLog.info(`Processing line ${i}:`, lines[i]);
 
         const values = lines[i]
