@@ -261,23 +261,58 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       devLog.info('CRITICAL DEBUG - Header line index:', headerLineIndex);
       devLog.info('CRITICAL DEBUG - Header line raw:', lines[headerLineIndex]);
 
-      // Check if required headers exist
-      const requiredHeaders = [
-        'Ativo',
-        'Abertura',
-        'Fechamento',
+      // Find headers with flexible matching (handle encoding issues)
+      const findHeaderIndex = (possibleNames: string[]): number => {
+        for (const name of possibleNames) {
+          const index = headers.findIndex(
+            (h) =>
+              h.toLowerCase().includes(name.toLowerCase()) ||
+              h
+                .replace(/[^\w\s]/g, '')
+                .toLowerCase()
+                .includes(name.replace(/[^\w\s]/g, '').toLowerCase()),
+          );
+          if (index !== -1) return index;
+        }
+        return -1;
+      };
+
+      const ativoIndex = findHeaderIndex(['Ativo']);
+      const aberturaIndex = findHeaderIndex(['Abertura']);
+      const fechamentoIndex = findHeaderIndex(['Fechamento']);
+      const resOperacaoIndex = findHeaderIndex([
         'Res. Operação',
-        'Lado',
-      ];
-      const missingHeaders = requiredHeaders.filter(
-        (h) => headers.indexOf(h) === -1,
-      );
-      if (missingHeaders.length > 0) {
-        devLog.error(
-          'CRITICAL DEBUG - Missing required headers:',
-          missingHeaders,
-        );
-        devLog.info('CRITICAL DEBUG - Available headers:', headers);
+        'Res Operacao',
+        'Resultado',
+        'Res Opera',
+      ]);
+      const ladoIndex = findHeaderIndex(['Lado']);
+
+      devLog.info('CRITICAL DEBUG - Header indexes found:', {
+        ativoIndex,
+        aberturaIndex,
+        fechamentoIndex,
+        resOperacaoIndex,
+        ladoIndex,
+        headers,
+      });
+
+      // Check if required headers exist
+      if (
+        ativoIndex === -1 ||
+        aberturaIndex === -1 ||
+        fechamentoIndex === -1 ||
+        resOperacaoIndex === -1 ||
+        ladoIndex === -1
+      ) {
+        devLog.error('CRITICAL DEBUG - Missing required headers:', {
+          ativoIndex,
+          aberturaIndex,
+          fechamentoIndex,
+          resOperacaoIndex,
+          ladoIndex,
+          availableHeaders: headers,
+        });
         devLog.error(
           'CRITICAL DEBUG - RETURNING EMPTY ARRAY DUE TO MISSING HEADERS!',
         );
@@ -302,11 +337,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           continue;
         }
 
-        const ativoIndex = headers.indexOf('Ativo');
-        const aberturaIndex = headers.indexOf('Abertura');
-        const fechamentoIndex = headers.indexOf('Fechamento');
-        const resOperacaoIndex = headers.indexOf('Res. Operação');
-        const ladoIndex = headers.indexOf('Lado');
+        // Use the indexes found earlier
 
         const ativo = values[ativoIndex] || '';
         const abertura = values[aberturaIndex] || '';
