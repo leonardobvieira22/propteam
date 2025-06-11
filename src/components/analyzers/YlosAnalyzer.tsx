@@ -203,15 +203,22 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
   const parseCSVOperations = (csvContent: string): TradeOperation[] => {
     try {
       devLog.info(
-        'parseCSVOperations called with content length:',
+        'CRITICAL DEBUG - parseCSVOperations called with content length:',
         csvContent.length,
+      );
+      devLog.info(
+        'CRITICAL DEBUG - CSV content first 500 chars:',
+        csvContent.substring(0, 500),
       );
 
       const lines = csvContent.split('\n').filter((line) => line.trim());
       devLog.info('Lines after filtering:', lines.length);
 
       if (lines.length <= 1) {
-        devLog.warn('Not enough lines in CSV:', lines.length);
+        devLog.error('CRITICAL DEBUG - Not enough lines in CSV:', lines.length);
+        devLog.error(
+          'CRITICAL DEBUG - RETURNING EMPTY ARRAY DUE TO INSUFFICIENT LINES!',
+        );
         return [];
       }
 
@@ -238,8 +245,14 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         (h) => headers.indexOf(h) === -1,
       );
       if (missingHeaders.length > 0) {
-        devLog.error('Missing required headers:', missingHeaders);
-        devLog.info('Available headers:', headers);
+        devLog.error(
+          'CRITICAL DEBUG - Missing required headers:',
+          missingHeaders,
+        );
+        devLog.info('CRITICAL DEBUG - Available headers:', headers);
+        devLog.error(
+          'CRITICAL DEBUG - RETURNING EMPTY ARRAY DUE TO MISSING HEADERS!',
+        );
         return [];
       }
 
