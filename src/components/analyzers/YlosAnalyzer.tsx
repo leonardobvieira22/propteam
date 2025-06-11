@@ -202,23 +202,19 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
 
   const parseCSVOperations = (csvContent: string): TradeOperation[] => {
     try {
-      devLog.info(
-        'CRITICAL DEBUG - parseCSVOperations called with content length:',
-        csvContent.length,
-      );
-      devLog.info(
-        'CRITICAL DEBUG - CSV content first 500 chars:',
-        csvContent.substring(0, 500),
-      );
+      devLog.info('CSV parsing started', {
+        contentLength: csvContent.length,
+        preview: csvContent.substring(0, 100),
+      });
 
       const lines = csvContent.split('\n').filter((line) => line.trim());
       devLog.info('Lines after filtering:', lines.length);
 
       if (lines.length <= 1) {
-        devLog.error('CRITICAL DEBUG - Not enough lines in CSV:', lines.length);
-        devLog.error(
-          'CRITICAL DEBUG - RETURNING EMPTY ARRAY DUE TO INSUFFICIENT LINES!',
-        );
+        devLog.error('CSV parsing failed: insufficient lines', {
+          linesFound: lines.length,
+          minimumRequired: 2,
+        });
         return [];
       }
 
@@ -242,10 +238,10 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       }
 
       if (headerLineIndex === -1) {
-        devLog.error(
-          'CRITICAL DEBUG - Could not find header line with "Ativo"',
-        );
-        devLog.info('CRITICAL DEBUG - First 10 lines:', lines.slice(0, 10));
+        devLog.error('CSV parsing failed: header line not found', {
+          searchedFor: 'Ativo',
+          firstLines: lines.slice(0, 5),
+        });
         return [];
       }
 
@@ -253,13 +249,16 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         .split(separator)
         .map((h) => h.trim().replace(/"/g, ''));
 
-      devLog.info('CRITICAL DEBUG - CSV Headers detected:', headers);
-      devLog.info(
-        'CRITICAL DEBUG - Using separator:',
-        separator === ';' ? 'SEMICOLON' : separator === '\t' ? 'TAB' : 'COMMA',
-      );
-      devLog.info('CRITICAL DEBUG - Header line index:', headerLineIndex);
-      devLog.info('CRITICAL DEBUG - Header line raw:', lines[headerLineIndex]);
+      devLog.info('CSV headers detected successfully', {
+        headers: headers.slice(0, 10), // Show first 10 headers
+        separator:
+          separator === ';'
+            ? 'SEMICOLON'
+            : separator === '\t'
+              ? 'TAB'
+              : 'COMMA',
+        headerLineIndex,
+      });
 
       // Find headers with flexible matching (handle encoding issues)
       const findHeaderIndex = (possibleNames: string[]): number => {
@@ -288,13 +287,14 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       ]);
       const ladoIndex = findHeaderIndex(['Lado']);
 
-      devLog.info('CRITICAL DEBUG - Header indexes found:', {
-        ativoIndex,
-        aberturaIndex,
-        fechamentoIndex,
-        resOperacaoIndex,
-        ladoIndex,
-        headers,
+      devLog.info('Header mapping completed', {
+        mappedFields: {
+          ativo: ativoIndex !== -1,
+          abertura: aberturaIndex !== -1,
+          fechamento: fechamentoIndex !== -1,
+          resultado: resOperacaoIndex !== -1,
+          lado: ladoIndex !== -1,
+        },
       });
 
       // Check if required headers exist
@@ -305,131 +305,88 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         resOperacaoIndex === -1 ||
         ladoIndex === -1
       ) {
-        devLog.error('CRITICAL DEBUG - Missing required headers:', {
-          ativoIndex,
-          aberturaIndex,
-          fechamentoIndex,
-          resOperacaoIndex,
-          ladoIndex,
-          availableHeaders: headers,
+        devLog.error('CSV parsing failed: required headers missing', {
+          missingFields: {
+            ativo: ativoIndex === -1,
+            abertura: aberturaIndex === -1,
+            fechamento: fechamentoIndex === -1,
+            resultado: resOperacaoIndex === -1,
+            lado: ladoIndex === -1,
+          },
+          availableHeaders: headers.slice(0, 10),
         });
-        devLog.error(
-          'CRITICAL DEBUG - RETURNING EMPTY ARRAY DUE TO MISSING HEADERS!',
-        );
         return [];
       }
 
       const operations: TradeOperation[] = [];
 
-      for (let i = headerLineIndex + 1; i < lines.length; i++) {
-        devLog.info(`Processing line ${i}:`, lines[i]);
+      let processedCount = 0;
+      let skippedCount = 0;
 
-        const values = lines[i]
+      for (let i = headerLineIndex + 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const values = line
           .split(separator)
           .map((v) => v.trim().replace(/"/g, ''));
 
-        devLog.info(`Line ${i} values:`, values);
-
         if (values.length < headers.length) {
-          devLog.warn(
-            `Line ${i} has ${values.length} values but expected ${headers.length}`,
-          );
+          skippedCount++;
           continue;
         }
 
-        // Use the indexes found earlier
+        const ativo = values[ativoIndex]?.trim() || '';
+        const abertura = values[aberturaIndex]?.trim() || '';
+        const fechamento = values[fechamentoIndex]?.trim() || '';
+        const resOperacaoStr = values[resOperacaoIndex]?.trim() || '0';
+        const lado = values[ladoIndex]?.trim() || '';
 
-        const ativo = values[ativoIndex] || '';
-        const abertura = values[aberturaIndex] || '';
-        const fechamento = values[fechamentoIndex] || '';
-        const resOperacaoStr = values[resOperacaoIndex] || '0';
-        const lado = values[ladoIndex] || '';
-
-        devLog.info(`Line ${i} extracted values:`, {
-          ativo,
-          abertura,
-          fechamento,
-          resOperacaoStr,
-          lado,
-          indexes: {
-            ativoIndex,
-            aberturaIndex,
-            fechamentoIndex,
-            resOperacaoIndex,
-            ladoIndex,
-          },
-        });
-
-        // Validate data before creating operation
+        // Validate essential fields
         if (!ativo || !abertura || !fechamento) {
-          devLog.warn('Skipping incomplete operation:', {
-            ativo,
-            abertura,
-            fechamento,
-            line: i,
-            values: values.slice(0, 5),
-          });
+          skippedCount++;
           continue;
         }
 
-        // Clean and parse the result value (remove dots for thousands, replace comma with dot for decimal)
+        // Parse result value efficiently
         const cleanResOperacao = resOperacaoStr
           .replace(/\./g, '')
           .replace(',', '.');
         const resOperacao = parseFloat(cleanResOperacao);
 
-        devLog.info(`Line ${i} result parsing:`, {
-          original: resOperacaoStr,
-          cleaned: cleanResOperacao,
-          parsed: resOperacao,
-          isNaN: isNaN(resOperacao),
-        });
-
         if (isNaN(resOperacao)) {
-          devLog.warn('Invalid result value:', {
-            original: resOperacaoStr,
-            cleaned: cleanResOperacao,
-            line: i,
-          });
+          skippedCount++;
           continue;
         }
 
-        const op: TradeOperation = {
+        operations.push({
           ativo,
           abertura,
           fechamento,
           res_operacao: resOperacao,
           lado,
-        };
-
-        devLog.info(`CRITICAL DEBUG - Line ${i} created operation:`, {
-          op,
-          hasAllFields: !!(
-            op.ativo &&
-            op.abertura &&
-            op.fechamento &&
-            typeof op.res_operacao === 'number'
-          ),
-          fieldTypes: {
-            ativo: typeof op.ativo,
-            abertura: typeof op.abertura,
-            fechamento: typeof op.fechamento,
-            res_operacao: typeof op.res_operacao,
-            lado: typeof op.lado,
-          },
         });
-        operations.push(op);
+
+        processedCount++;
       }
 
-      devLog.info(
-        `CRITICAL DEBUG - Successfully parsed ${operations.length} operations from ${lines.length - 1} lines`,
-      );
-      devLog.info('CRITICAL DEBUG - Final operations array:', {
-        operationsLength: operations.length,
-        operations: operations,
-        firstOperation: operations[0],
-        lastOperation: operations[operations.length - 1],
+      devLog.info('CSV parsing completed', {
+        totalLines: lines.length - headerLineIndex - 1,
+        processed: processedCount,
+        skipped: skippedCount,
+        success: processedCount > 0,
       });
+
+      if (operations.length > 0) {
+        devLog.info('CSV parsing successful', {
+          operationsCount: operations.length,
+          firstOperation: {
+            ativo: operations[0].ativo,
+            abertura: operations[0].abertura,
+            resultado: operations[0].res_operacao,
+          },
+        });
+      }
       return operations;
     } catch (error) {
       devLog.error('Error parsing CSV operations:', error);
@@ -476,8 +433,6 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
   );
 
   const handleAnalyze = async () => {
-    devLog.info('CRITICAL DEBUG - handleAnalyze called');
-
     if (!csvContent) {
       setError('Por favor, faça upload de um arquivo CSV');
       return;
@@ -487,9 +442,11 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     setStep('analyzing');
 
     try {
-      devLog.info(
-        'CRITICAL DEBUG - About to make API call to /api/ylos/analyze',
-      );
+      devLog.info('Starting YLOS analysis', {
+        accountType: formData.contaType,
+        balance: formData.saldoAtual,
+        csvSize: csvContent.length,
+      });
       const response = await fetch('/api/ylos/analyze', {
         method: 'POST',
         headers: {
@@ -511,45 +468,17 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       }
 
       const result = await response.json();
-      devLog.info('CRITICAL DEBUG - API response received successfully');
 
-      // Parse operations from CSV content for daily analysis
-      devLog.info(
-        'CRITICAL DEBUG - Starting CSV parsing with content length:',
-        csvContent.length,
-      );
-      devLog.info(
-        'CRITICAL DEBUG - CSV content preview:',
-        csvContent.substring(0, 200),
-      );
-
-      devLog.info('CRITICAL DEBUG - About to call parseCSVOperations...');
+      // Parse operations for daily analysis
       const parsedOperations = parseCSVOperations(csvContent);
-      devLog.info('CRITICAL DEBUG - parseCSVOperations returned:', {
-        length: parsedOperations.length,
-        operations: parsedOperations,
-      });
-      devLog.info('Parsed operations result:', {
-        count: parsedOperations.length,
-        operations: parsedOperations,
-      });
-
-      // CRITICAL DEBUG: Log exactly what we're setting
-      devLog.info('CRITICAL DEBUG - Setting operations state:', {
-        parsedOperationsLength: parsedOperations.length,
-        firstOperation: parsedOperations[0],
-        allOperations: parsedOperations,
-      });
-
       setOperations(parsedOperations);
 
-      // CRITICAL DEBUG: Verify state was set
-      setTimeout(() => {
-        devLog.info('CRITICAL DEBUG - Operations state after setOperations:', {
-          operationsLength: operations.length,
-          operations: operations,
-        });
-      }, 100);
+      devLog.info('YLOS analysis completed', {
+        approved: result.aprovado,
+        totalOperations: result.total_operacoes,
+        daysOperated: result.dias_operados,
+        parsedOperations: parsedOperations.length,
+      });
 
       setAnalysisResult(result);
       setStep('results');
@@ -2540,43 +2469,9 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
               </div>
             </button>
 
-            {/* DEBUG: Show current operations state */}
-            <button
-              onClick={() => {
-                devLog.info('CRITICAL DEBUG - Current operations state:', {
-                  operationsLength: operations.length,
-                  operations: operations,
-                  csvContent: csvContent.substring(0, 100),
-                  step: step,
-                });
-                alert(
-                  `Operations: ${operations.length} | CSV: ${csvContent.length} chars`,
-                );
-              }}
-              className='flex items-center space-x-3 rounded-lg bg-orange-600 p-4 text-left transition-all duration-200 hover:bg-orange-700'
-            >
-              <div className='rounded-lg bg-white bg-opacity-20 p-2'>
-                <BarChart3 className='h-5 w-5' />
-              </div>
-              <div>
-                <div className='font-medium'>DEBUG: Check State</div>
-                <div className='text-sm text-orange-100'>
-                  Operations: {operations.length}
-                </div>
-              </div>
-            </button>
-
             {/* Análise Diária */}
             <button
-              onClick={() => {
-                devLog.info('CRITICAL DEBUG - Opening Daily Analysis Modal:', {
-                  operationsLength: operations.length,
-                  operations: operations.slice(0, 2),
-                  operationsState: operations,
-                  hasAnalysisResult: !!analysisResult,
-                });
-                setShowDailyAnalysis(true);
-              }}
+              onClick={() => setShowDailyAnalysis(true)}
               className='flex items-center space-x-3 rounded-lg bg-purple-600 p-4 text-left transition-all duration-200 hover:bg-purple-700'
             >
               <div className='rounded-lg bg-white bg-opacity-20 p-2'>

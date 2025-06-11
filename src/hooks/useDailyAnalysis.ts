@@ -16,30 +16,20 @@ export function useDailyAnalysis(
   filters: DailyAnalysisFilters,
 ) {
   const dailyAnalysis = useMemo(() => {
-    devLog.info('CRITICAL DEBUG - useDailyAnalysis called with:', {
-      operationsCount: operations?.length || 0,
-      accountType,
-      withdrawalThreshold,
-      filters,
-      operations: operations?.slice(0, 2), // Show first 2 operations
-      isOperationsArray: Array.isArray(operations),
-      operationsType: typeof operations,
-      operationsUndefined: operations === undefined,
-      operationsNull: operations === null,
-    });
-
     if (!operations || operations.length === 0) {
-      devLog.error(
-        'CRITICAL DEBUG - No operations provided to useDailyAnalysis:',
-        {
-          operations,
-          operationsLength: operations?.length,
-          operationsType: typeof operations,
-          isArray: Array.isArray(operations),
-        },
-      );
+      devLog.warn('Daily analysis: no operations provided', {
+        operationsLength: operations?.length || 0,
+        accountType,
+      });
       return [];
     }
+
+    devLog.info('Daily analysis processing started', {
+      operationsCount: operations.length,
+      accountType,
+      withdrawalThreshold,
+      filters: filters.status,
+    });
 
     // Parse date helper
     const parseDate = (dateStr: string): Date => {

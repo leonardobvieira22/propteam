@@ -10,7 +10,7 @@ import {
   Download,
   X,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import { devLog } from '@/lib/logger';
 import { useDailyAnalysis } from '@/hooks/useDailyAnalysis';
@@ -43,25 +43,21 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
     filters,
   );
 
-  // Analysis logging for development
+  // Analysis logging for monitoring
   React.useEffect(() => {
-    devLog.info('CRITICAL DEBUG - DailyAnalysisModal - Operations received:', {
-      count: operations.length,
-      operations: operations.slice(0, 3), // Show first 3 operations
-      accountType,
-      withdrawalThreshold,
-      isOperationsArray: Array.isArray(operations),
-      operationsType: typeof operations,
-      firstOperationStructure: operations[0]
-        ? Object.keys(operations[0])
-        : 'NO_OPERATIONS',
-    });
-    devLog.info('CRITICAL DEBUG - DailyAnalysisModal - Analysis result:', {
-      dailyAnalysisCount: dailyAnalysis.length,
-      summary,
-      dailyAnalysisFirst: dailyAnalysis[0],
-    });
-  }, [operations, dailyAnalysis, summary, accountType, withdrawalThreshold]);
+    if (isOpen) {
+      devLog.info('Daily analysis modal opened', {
+        operationsCount: operations.length,
+        accountType,
+        analysisResults: dailyAnalysis.length,
+        summaryStats: {
+          total: summary.total,
+          approved: summary.approved,
+          critical: summary.critical,
+        },
+      });
+    }
+  }, [isOpen, operations.length, dailyAnalysis.length, summary, accountType]);
 
   // Close modal on Escape key
   useEffect(() => {
@@ -80,7 +76,7 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
     };
   }, [isOpen, onClose]);
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = useCallback((status: string) => {
     switch (status) {
       case 'approved':
         return <CheckCircle className='h-5 w-5 text-green-500' />;
@@ -91,9 +87,9 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
       default:
         return <CheckCircle className='h-5 w-5 text-gray-400' />;
     }
-  };
+  }, []);
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = useCallback((status: string) => {
     switch (status) {
       case 'approved':
         return 'border-green-200 bg-green-50 hover:border-green-300 hover:bg-green-100';
@@ -104,28 +100,28 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
       default:
         return 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100';
     }
-  };
+  }, []);
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = useCallback((value: number) => {
     return value.toLocaleString('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
     });
-  };
+  }, []);
 
-  const formatDate = (dateStr: string) => {
+  const formatDate = useCallback((dateStr: string) => {
     try {
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) {
-        return dateStr; // fallback to original string
+        return dateStr;
       }
       return date.toLocaleDateString('pt-BR');
     } catch (error) {
       devLog.error('Date formatting error:', error, 'for string:', dateStr);
-      return dateStr; // fallback to original string
+      return dateStr;
     }
-  };
+  }, []);
 
   const handleExport = () => {
     // Implementation for PDF/Excel export
