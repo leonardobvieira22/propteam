@@ -304,7 +304,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
             abertura,
             fechamento,
             line: i,
-            values: values.slice(0, 5), // Show first 5 values for debugging
+            values: values.slice(0, 5),
           });
           continue;
         }
@@ -2427,8 +2427,6 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                 </div>
               </div>
             </button>
-
-            {/* Debug CSV Parsing */}
 
             {/* Análise Diária */}
             <button

@@ -1,7 +1,7 @@
 export const siteConfig = {
-  title: 'Enterprise Next.js Starter',
+  title: 'Mesa Prop Trading Analyzer',
   description:
-    'A professional starter for Next.js, Tailwind CSS, and TypeScript with enterprise-grade tools and configurations',
+    'Sistema enterprise de análise de conformidade para trading proprietário com integração YLOS Trading',
   /** Without additional '/' on the end, e.g. https://yoursite.com */
-  url: 'https://localhost:3000',
+  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://mesa-prop-analyzer.com',
 };

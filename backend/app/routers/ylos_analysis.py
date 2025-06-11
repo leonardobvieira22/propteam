@@ -5,6 +5,7 @@ from typing import Optional
 from ..services.ylos_analyzer import YlosTradeAnalyzer
 from ..models.ylos_models import YlosAnalysisRequest, YlosAnalysisResponse, ContaType
 from ..core.config import settings
+import os
 
 logger = structlog.get_logger(__name__)
 router = APIRouter()
@@ -137,12 +138,17 @@ async def get_trading_rules(conta_type: str):
 @router.get("/exemplo-csv")
 async def get_csv_example():
     """
-    Retorna um exemplo do formato CSV esperado
+    Retorna um exemplo do formato CSV esperado baseado em configuração
     """
     
-    exemplo_csv = """Ativo\tAbertura\tFechamento\tTempo Operação\tQtd Compra\tQtd Venda\tLado\tPreco Compra\tPreco Venda\tPreco de Mercado\tMédio\tRes. Intervalo\tRes. Intervalo (%)\tRes. Operação\tRes. Operação (%)\tTET\tTotal
-ESFUT\t04/06/2025 06:41\t04/06/2025 07:21\t39min53s\t3\t3\tV\t5.990,25\t5.992,50\t5.986,00\tNão\t337,5\t0,04\t337,5\t0,04\t-\t337,5
-ESFUT\t04/06/2025 07:24\t04/06/2025 07:24\t36s\t3\t3\tC\t5.990,00\t5.990,75\t5.986,00\tNão\t112,5\t0,01\t112,5\t0,01\t43min4s\t450"""
+    # ENTERPRISE: CSV example should be configurable via environment or config file
+    exemplo_csv_config = os.getenv('CSV_EXAMPLE_TEMPLATE')
+    if exemplo_csv_config:
+        exemplo_csv = exemplo_csv_config
+    else:
+        # Default template for YLOS Trading format
+        exemplo_csv = """Ativo\tAbertura\tFechamento\tTempo Operação\tQtd Compra\tQtd Venda\tLado\tPreco Compra\tPreco Venda\tPreco de Mercado\tMédio\tRes. Intervalo\tRes. Intervalo (%)\tRes. Operação\tRes. Operação (%)\tTET\tTotal
+ESFUT\t[DATA] [HORA]\t[DATA] [HORA]\t[TEMPO]\t[QTD]\t[QTD]\t[C/V]\t[PREÇO]\t[PREÇO]\t[PREÇO]\t[SIM/NÃO]\t[VALOR]\t[%]\t[VALOR]\t[%]\t[TEMPO]\t[VALOR]"""
     
     return {
         "exemplo_csv": exemplo_csv,
@@ -158,5 +164,6 @@ ESFUT\t04/06/2025 07:24\t04/06/2025 07:24\t36s\t3\t3\tC\t5.990,00\t5.990,75\t5.9
             "Lado: C para Compra, V para Venda",
             "Médio: Sim ou Não",
             "Salve o arquivo como CSV com codificação UTF-8"
-        ]
+        ],
+        "enterprise_note": "Para dados reais, use o relatório exportado diretamente da plataforma de trading"
     } 

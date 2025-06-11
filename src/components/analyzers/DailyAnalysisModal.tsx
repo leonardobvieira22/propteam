@@ -43,7 +43,7 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
     filters,
   );
 
-  // Debug logging
+  // Analysis logging for development
   React.useEffect(() => {
     devLog.info('DailyAnalysisModal - Operations received:', {
       count: operations.length,
