@@ -35,6 +35,8 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
   });
 
   const [selectedDay, setSelectedDay] = useState<DailyAnalysis | null>(null);
+  const [selectedViolationsDay, setSelectedViolationsDay] =
+    useState<DailyAnalysis | null>(null);
 
   const { dailyAnalysis, summary } = useDailyAnalysis(
     operations,
@@ -216,15 +218,24 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
 
       {/* Violations Count */}
       {day.violations.length > 0 && (
-        <div className='mt-3 rounded-md bg-white/50 p-2'>
-          <div className='flex items-center space-x-1 text-xs'>
-            <AlertTriangle className='h-3 w-3 text-orange-500' />
-            <span className='text-gray-700'>
-              {day.violations.length}{' '}
-              {day.violations.length === 1 ? 'violação' : 'violações'}
-            </span>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setSelectedViolationsDay(day);
+          }}
+          className='mt-3 w-full rounded-md bg-white/50 p-2 transition-colors hover:bg-white/80'
+        >
+          <div className='flex items-center justify-between text-xs'>
+            <div className='flex items-center space-x-1'>
+              <AlertTriangle className='h-3 w-3 text-orange-500' />
+              <span className='text-gray-700'>
+                {day.violations.length}{' '}
+                {day.violations.length === 1 ? 'violação' : 'violações'}
+              </span>
+            </div>
+            <span className='text-xs text-gray-500'>Clique para ver</span>
           </div>
-        </div>
+        </button>
       )}
     </motion.div>
   );
@@ -523,6 +534,170 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Violations Detail Modal */}
+      <AnimatePresence>
+        {selectedViolationsDay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className='fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 p-4'
+            onClick={() => setSelectedViolationsDay(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className='w-full max-w-2xl rounded-xl bg-white shadow-2xl'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className='border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50 p-6'>
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center space-x-3'>
+                    <AlertTriangle className='h-6 w-6 text-orange-600' />
+                    <div>
+                      <h3 className='text-xl font-bold text-gray-900'>
+                        Violações Detectadas
+                      </h3>
+                      <p className='text-sm text-gray-600'>
+                        {formatDate(selectedViolationsDay.date)} -{' '}
+                        {selectedViolationsDay.dayOfWeek}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedViolationsDay(null)}
+                    className='rounded-full p-2 text-gray-400 hover:bg-gray-100'
+                  >
+                    <X className='h-5 w-5' />
+                  </button>
+                </div>
+              </div>
+
+              <div className='max-h-[60vh] overflow-y-auto p-6'>
+                <div className='space-y-4'>
+                  {selectedViolationsDay.violations.map((violation, index) => (
+                    <div
+                      key={`violation-${selectedViolationsDay.date}-${index}`}
+                      className={`rounded-lg border-l-4 p-4 ${
+                        violation.severity === 'CRITICAL'
+                          ? 'border-red-500 bg-red-50'
+                          : violation.severity === 'WARNING'
+                            ? 'border-yellow-500 bg-yellow-50'
+                            : 'border-blue-500 bg-blue-50'
+                      }`}
+                    >
+                      <div className='flex items-start justify-between'>
+                        <div className='flex-1'>
+                          <div className='flex items-center space-x-2'>
+                            <h4 className='font-semibold text-gray-900'>
+                              {violation.title}
+                            </h4>
+                            <span
+                              className={`rounded-full px-2 py-1 text-xs font-medium ${
+                                violation.severity === 'CRITICAL'
+                                  ? 'bg-red-100 text-red-800'
+                                  : violation.severity === 'WARNING'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-blue-100 text-blue-800'
+                              }`}
+                            >
+                              {violation.severity === 'CRITICAL'
+                                ? 'Crítico'
+                                : violation.severity === 'WARNING'
+                                  ? 'Aviso'
+                                  : 'Info'}
+                            </span>
+                          </div>
+                          <p className='mt-2 text-sm text-gray-700'>
+                            {violation.description}
+                          </p>
+
+                          {/* Show values if available */}
+                          {violation.value !== undefined &&
+                            violation.limit !== undefined && (
+                              <div className='mt-3 grid grid-cols-2 gap-4 rounded-md bg-white/50 p-3'>
+                                <div>
+                                  <div className='text-xs font-medium text-gray-500'>
+                                    Valor Atual
+                                  </div>
+                                  <div className='text-sm font-semibold text-gray-900'>
+                                    {violation.code === 'DAILY_LIMIT' ||
+                                    violation.code === 'WINNING_DAY'
+                                      ? formatCurrency(violation.value)
+                                      : `${violation.value.toFixed(1)}%`}
+                                  </div>
+                                </div>
+                                <div>
+                                  <div className='text-xs font-medium text-gray-500'>
+                                    Limite Permitido
+                                  </div>
+                                  <div className='text-sm font-semibold text-gray-900'>
+                                    {violation.code === 'DAILY_LIMIT' ||
+                                    violation.code === 'WINNING_DAY'
+                                      ? formatCurrency(violation.limit)
+                                      : `${violation.limit.toFixed(1)}%`}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                          {/* Show violation code for reference */}
+                          <div className='mt-2'>
+                            <span className='font-mono text-xs text-gray-500'>
+                              Código: {violation.code}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Summary of violations */}
+                <div className='mt-6 rounded-lg bg-gray-50 p-4'>
+                  <h5 className='font-medium text-gray-900'>
+                    Resumo das Violações
+                  </h5>
+                  <div className='mt-2 grid grid-cols-3 gap-4 text-center'>
+                    <div>
+                      <div className='text-lg font-bold text-red-600'>
+                        {
+                          selectedViolationsDay.violations.filter(
+                            (v) => v.severity === 'CRITICAL',
+                          ).length
+                        }
+                      </div>
+                      <div className='text-xs text-gray-500'>Críticas</div>
+                    </div>
+                    <div>
+                      <div className='text-lg font-bold text-yellow-600'>
+                        {
+                          selectedViolationsDay.violations.filter(
+                            (v) => v.severity === 'WARNING',
+                          ).length
+                        }
+                      </div>
+                      <div className='text-xs text-gray-500'>Avisos</div>
+                    </div>
+                    <div>
+                      <div className='text-lg font-bold text-blue-600'>
+                        {
+                          selectedViolationsDay.violations.filter(
+                            (v) => v.severity === 'INFO',
+                          ).length
+                        }
+                      </div>
+                      <div className='text-xs text-gray-500'>Informações</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </motion.div>
