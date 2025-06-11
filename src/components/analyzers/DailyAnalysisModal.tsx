@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
+import { devLog } from '@/lib/logger';
 import { useDailyAnalysis } from '@/hooks/useDailyAnalysis';
 
 import {
@@ -94,8 +95,16 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
   };
 
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR');
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) {
+        return dateStr; // fallback to original string
+      }
+      return date.toLocaleDateString('pt-BR');
+    } catch (error) {
+      devLog.error('Date formatting error:', error, 'for string:', dateStr);
+      return dateStr; // fallback to original string
+    }
   };
 
   const handleExport = () => {
@@ -212,7 +221,7 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className='fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4'
+        className='fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4'
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <motion.div

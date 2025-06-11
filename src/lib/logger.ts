@@ -427,3 +427,38 @@ export const enterpriseLogger = new EnterpriseLogger();
 // Export types for external use
 export type { LogContext, LogEntry };
 export { PerformanceTracker };
+
+/**
+ * Development-only logging utilities
+ * These functions only log in development environment
+ */
+
+export const devLog = {
+  warn: (message: string, ...args: unknown[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.warn(message, ...args);
+    }
+  },
+
+  error: (message: string, ...args: unknown[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.error(message, ...args);
+    }
+  },
+
+  info: (message: string, ...args: unknown[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.info(message, ...args);
+    }
+  },
+
+  log: (message: string, ...args: unknown[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(message, ...args);
+    }
+  },
+};

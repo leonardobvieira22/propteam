@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 
+import { devLog } from '@/lib/logger';
+
 import {
   DailyAnalysis,
   DailyAnalysisFilters,
@@ -18,27 +20,82 @@ export function useDailyAnalysis(
 
     // Parse date helper
     const parseDate = (dateStr: string): Date => {
-      if (dateStr.includes('/')) {
-        const [datePart] = dateStr.split(' ');
-        const [day, month, year] = datePart.split('/');
-        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      try {
+        if (!dateStr || typeof dateStr !== 'string') {
+          devLog.warn('Invalid date string:', dateStr);
+          return new Date(); // fallback to current date
+        }
+
+        if (dateStr.includes('/')) {
+          const [datePart] = dateStr.split(' ');
+          const [day, month, year] = datePart.split('/');
+
+          const dayNum = parseInt(day);
+          const monthNum = parseInt(month);
+          const yearNum = parseInt(year);
+
+          // Validate numbers
+          if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) {
+            devLog.warn('Invalid date components:', { day, month, year });
+            return new Date();
+          }
+
+          // Validate ranges
+          if (monthNum < 1 || monthNum > 12 || dayNum < 1 || dayNum > 31) {
+            devLog.warn('Invalid date ranges:', {
+              day: dayNum,
+              month: monthNum,
+              year: yearNum,
+            });
+            return new Date();
+          }
+
+          const date = new Date(yearNum, monthNum - 1, dayNum);
+
+          // Check if date is valid
+          if (isNaN(date.getTime())) {
+            devLog.warn('Invalid parsed date:', dateStr);
+            return new Date();
+          }
+
+          return date;
+        }
+
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          devLog.warn('Invalid date string:', dateStr);
+          return new Date();
+        }
+
+        return date;
+      } catch (error) {
+        devLog.error('Date parsing error:', error, 'for string:', dateStr);
+        return new Date(); // fallback to current date
       }
-      return new Date(dateStr);
     };
 
     // Group operations by day
     const operationsByDay = new Map<string, TradeOperation[]>();
 
     operations.forEach((op) => {
-      const date = parseDate(op.abertura);
-      const dayKey = date.toISOString().split('T')[0];
+      try {
+        if (!op.abertura) {
+          devLog.warn('Operation missing abertura field:', op);
+          return;
+        }
 
-      if (!operationsByDay.has(dayKey)) {
-        operationsByDay.set(dayKey, []);
-      }
-      const dayOps = operationsByDay.get(dayKey);
-      if (dayOps) {
-        dayOps.push(op);
+        const date = parseDate(op.abertura);
+        const dayKey = date.toISOString().split('T')[0];
+
+        if (!operationsByDay.has(dayKey)) {
+          operationsByDay.set(dayKey, []);
+        }
+        const dayOps = operationsByDay.get(dayKey);
+        if (dayOps) {
+          dayOps.push(op);
+        }
+      } catch (error) {
+        devLog.error('Error processing operation:', error, op);
       }
     });
 
@@ -150,7 +207,14 @@ export function useDailyAnalysis(
 
       return {
         date,
-        dayOfWeek: dateObj.toLocaleDateString('pt-BR', { weekday: 'short' }),
+        dayOfWeek: (() => {
+          try {
+            return dateObj.toLocaleDateString('pt-BR', { weekday: 'short' });
+          } catch (error) {
+            devLog.error('Error formatting day of week:', error, dateObj);
+            return 'N/A';
+          }
+        })(),
         totalOperations: dayOps.length,
         winningOperations: winningOps.length,
         losingOperations: losingOps.length,
@@ -179,8 +243,17 @@ export function useDailyAnalysis(
 
       switch (filters.sortBy) {
         case 'date':
-          aValue = new Date(a.date).getTime();
-          bValue = new Date(b.date).getTime();
+          try {
+            aValue = new Date(a.date).getTime();
+            bValue = new Date(b.date).getTime();
+            // Check for invalid dates
+            if (isNaN(aValue)) aValue = 0;
+            if (isNaN(bValue)) bValue = 0;
+          } catch (error) {
+            devLog.error('Error sorting by date:', error);
+            aValue = 0;
+            bValue = 0;
+          }
           break;
         case 'netResult':
           aValue = a.netResult;
@@ -195,8 +268,16 @@ export function useDailyAnalysis(
           bValue = b.winRate;
           break;
         default:
-          aValue = new Date(a.date).getTime();
-          bValue = new Date(b.date).getTime();
+          try {
+            aValue = new Date(a.date).getTime();
+            bValue = new Date(b.date).getTime();
+            if (isNaN(aValue)) aValue = 0;
+            if (isNaN(bValue)) bValue = 0;
+          } catch (error) {
+            devLog.error('Error in default sort:', error);
+            aValue = 0;
+            bValue = 0;
+          }
       }
 
       const result = aValue < bValue ? -1 : aValue > bValue ? 1 : 0;

@@ -25,6 +25,8 @@ import { useCallback, useState } from 'react';
 
 import '../../styles/dailyAnalysis.css';
 
+import { devLog } from '@/lib/logger';
+
 import DailyAnalysisModal from './DailyAnalysisModal';
 
 import { TradeOperation as DailyTradeOperation } from '@/types/dailyAnalysis';
@@ -223,14 +225,34 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           .map((v) => v.trim().replace(/"/g, ''));
         if (values.length < headers.length) continue;
 
+        const ativo = values[headers.indexOf('Ativo')] || '';
+        const abertura = values[headers.indexOf('Abertura')] || '';
+        const fechamento = values[headers.indexOf('Fechamento')] || '';
+        const resOperacaoStr = values[headers.indexOf('Res. Operação')] || '0';
+        const lado = values[headers.indexOf('Lado')] || '';
+
+        // Validate data before creating operation
+        if (!ativo || !abertura || !fechamento) {
+          devLog.warn('Skipping incomplete operation:', {
+            ativo,
+            abertura,
+            fechamento,
+          });
+          continue;
+        }
+
+        const resOperacao = parseFloat(resOperacaoStr);
+        if (isNaN(resOperacao)) {
+          devLog.warn('Invalid result value:', resOperacaoStr);
+          continue;
+        }
+
         const op: DailyTradeOperation = {
-          ativo: values[headers.indexOf('Ativo')] || '',
-          abertura: values[headers.indexOf('Abertura')] || '',
-          fechamento: values[headers.indexOf('Fechamento')] || '',
-          res_operacao: parseFloat(
-            values[headers.indexOf('Res. Operação')] || '0',
-          ),
-          lado: values[headers.indexOf('Lado')] || '',
+          ativo,
+          abertura,
+          fechamento,
+          res_operacao: resOperacao,
+          lado,
         };
 
         operations.push(op);
@@ -882,7 +904,15 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                       : 'Instant Funding'}
                   </span>
                   <span className='text-sm text-gray-600'>
-                    Análise gerada em {new Date().toLocaleDateString('pt-BR')}
+                    Análise gerada em{' '}
+                    {(() => {
+                      try {
+                        return new Date().toLocaleDateString('pt-BR');
+                      } catch (error) {
+                        devLog.error('Date format error:', error);
+                        return new Date().toISOString().split('T')[0];
+                      }
+                    })()}
                   </span>
                 </div>
               </div>
@@ -2394,7 +2424,15 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
               <span className='font-medium text-white'>
                 Mesa Prop Trading Analyzer
               </span>{' '}
-              • Versão Enterprise • {new Date().toLocaleDateString('pt-BR')}
+              • Versão Enterprise •{' '}
+              {(() => {
+                try {
+                  return new Date().toLocaleDateString('pt-BR');
+                } catch (error) {
+                  devLog.error('Date format error:', error);
+                  return new Date().toISOString().split('T')[0];
+                }
+              })()}
             </p>
           </div>
         </div>
