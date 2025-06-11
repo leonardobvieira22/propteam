@@ -350,9 +350,14 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       }
 
       devLog.info(
-        `Successfully parsed ${operations.length} operations from ${lines.length - 1} lines`,
+        `CRITICAL DEBUG - Successfully parsed ${operations.length} operations from ${lines.length - 1} lines`,
       );
-      devLog.info('Final operations array:', operations);
+      devLog.info('CRITICAL DEBUG - Final operations array:', {
+        operationsLength: operations.length,
+        operations: operations,
+        firstOperation: operations[0],
+        lastOperation: operations[operations.length - 1],
+      });
       return operations;
     } catch (error) {
       devLog.error('Error parsing CSV operations:', error);
@@ -451,6 +456,14 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
       });
 
       setOperations(parsedOperations);
+
+      // CRITICAL DEBUG: Verify state was set
+      setTimeout(() => {
+        devLog.info('CRITICAL DEBUG - Operations state after setOperations:', {
+          operationsLength: operations.length,
+          operations: operations,
+        });
+      }, 100);
 
       setAnalysisResult(result);
       setStep('results');
@@ -2437,6 +2450,32 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
                 <div className='font-medium'>Nova Análise</div>
                 <div className='text-sm text-gray-300'>
                   Analisar outra conta
+                </div>
+              </div>
+            </button>
+
+            {/* DEBUG: Show current operations state */}
+            <button
+              onClick={() => {
+                devLog.info('CRITICAL DEBUG - Current operations state:', {
+                  operationsLength: operations.length,
+                  operations: operations,
+                  csvContent: csvContent.substring(0, 100),
+                  step: step,
+                });
+                alert(
+                  `Operations: ${operations.length} | CSV: ${csvContent.length} chars`,
+                );
+              }}
+              className='flex items-center space-x-3 rounded-lg bg-orange-600 p-4 text-left transition-all duration-200 hover:bg-orange-700'
+            >
+              <div className='rounded-lg bg-white bg-opacity-20 p-2'>
+                <BarChart3 className='h-5 w-5' />
+              </div>
+              <div>
+                <div className='font-medium'>DEBUG: Check State</div>
+                <div className='text-sm text-orange-100'>
+                  Operations: {operations.length}
                 </div>
               </div>
             </button>
