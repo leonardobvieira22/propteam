@@ -29,7 +29,7 @@ import { devLog } from '@/lib/logger';
 
 import DailyAnalysisModal from './DailyAnalysisModal';
 
-import { TradeOperation as DailyTradeOperation } from '@/types/dailyAnalysis';
+import { TradeOperation } from '@/types/dailyAnalysis';
 
 interface YlosAnalyzerProps {
   onBack?: () => void;
@@ -41,15 +41,6 @@ interface FormData {
   fusoHorario: string;
   verificarNoticias: boolean;
   saques: number;
-}
-
-interface TradeOperation {
-  ativo: string;
-  abertura: string;
-  fechamento: string;
-  res_operacao: number;
-  lado: string;
-  [key: string]: unknown;
 }
 
 interface EventDetail {
@@ -181,7 +172,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     new Set(),
   );
   const [showDailyAnalysis, setShowDailyAnalysis] = useState(false);
-  const [operations, setOperations] = useState<DailyTradeOperation[]>([]);
+  const [operations, setOperations] = useState<TradeOperation[]>([]);
 
   const toggleViolationDetails = (codigo: string) => {
     setExpandedViolations((prev) => {
@@ -209,7 +200,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
     };
   };
 
-  const parseCSVOperations = (csvContent: string): DailyTradeOperation[] => {
+  const parseCSVOperations = (csvContent: string): TradeOperation[] => {
     try {
       devLog.info(
         'parseCSVOperations called with content length:',
@@ -252,7 +243,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
         return [];
       }
 
-      const operations: DailyTradeOperation[] = [];
+      const operations: TradeOperation[] = [];
 
       for (let i = 1; i < lines.length; i++) {
         devLog.info(`Processing line ${i}:`, lines[i]);
@@ -331,7 +322,7 @@ export default function YlosAnalyzer({ onBack }: YlosAnalyzerProps) {
           continue;
         }
 
-        const op: DailyTradeOperation = {
+        const op: TradeOperation = {
           ativo,
           abertura,
           fechamento,
