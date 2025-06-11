@@ -211,6 +211,128 @@ export function useDailyAnalysis(
         });
       }
 
+      // Check for DCA strategy (maximum 3 averagings per operation)
+      const dcaOperations = dayOps.filter((op) => op.medio === 'Sim');
+      if (dcaOperations.length > 3) {
+        violations.push({
+          code: 'DCA_EXCESSIVE',
+          title: 'Estratégia de Médio Excessiva',
+          description: `Detectado uso de estratégia de médio em ${dcaOperations.length} operações. Regra YLOS: máximo 3 médios por operação.`,
+          severity: 'WARNING',
+          value: dcaOperations.length,
+          limit: 3,
+        });
+      }
+
+      // Check for overnight positions (prohibited in Master Funded)
+      const overnightOperations = dayOps.filter((op) => {
+        try {
+          const abertura = parseDate(op.abertura);
+          const fechamento = parseDate(op.fechamento);
+          return abertura.getDate() !== fechamento.getDate();
+        } catch (error) {
+          devLog.error('Error checking overnight position:', error, op);
+          return false;
+        }
+      });
+
+      if (overnightOperations.length > 0) {
+        const severidade =
+          accountType === 'MASTER_FUNDED' ? 'CRITICAL' : 'WARNING';
+        violations.push({
+          code: 'OVERNIGHT',
+          title: 'Posições Overnight Detectadas',
+          description: `Detectadas ${overnightOperations.length} operações overnight. ${accountType === 'MASTER_FUNDED' ? 'PROIBIDO em Master Funded.' : 'Atenção: verifique conformidade.'}`,
+          severity: severidade,
+          value: overnightOperations.length,
+          limit: 0,
+        });
+      }
+
+      // Check for positions open during NY market opening (9:30 AM NY time - prohibited for Master Funded)
+      if (accountType === 'MASTER_FUNDED') {
+        const nyOpeningViolations = dayOps.filter((op) => {
+          try {
+            const abertura = parseDate(op.abertura);
+            const fechamento = parseDate(op.fechamento);
+
+            const hour = abertura.getHours();
+            const minute = abertura.getMinutes();
+            const aberturaMinutes = hour * 60 + minute;
+
+            const fechamentoHour = fechamento.getHours();
+            const fechamentoMinute = fechamento.getMinutes();
+            const fechamentoMinutes = fechamentoHour * 60 + fechamentoMinute;
+
+            // Determine if we're in Daylight Saving Time (March-November in US)
+            const month = abertura.getMonth() + 1; // 1-based month
+            const isDST = month >= 3 && month <= 11; // Approximate DST period
+
+            // NY Opening windows in Brazil time (15 minutes before and after 9:30 AM NY)
+            // DST: 9:15-9:45 AM NY = 10:15-10:45 AM Brazil
+            // Standard: 9:15-9:45 AM NY = 11:15-11:45 AM Brazil
+            const windowStart = isDST ? 615 : 675; // 10:15 AM (DST) or 11:15 AM (Standard)
+            const windowEnd = isDST ? 645 : 705; // 10:45 AM (DST) or 11:45 AM (Standard)
+
+            // Check if position was open during the prohibited window
+            return (
+              aberturaMinutes <= windowEnd && fechamentoMinutes >= windowStart
+            );
+          } catch (error) {
+            devLog.error('Error checking NY opening violation:', error, op);
+            return false;
+          }
+        });
+
+        if (nyOpeningViolations.length > 0) {
+          violations.push({
+            code: 'NY_OPENING',
+            title: 'Posições Durante Abertura NY',
+            description: `Detectadas ${nyOpeningViolations.length} posições abertas durante abertura do mercado NY (9:15-9:45 AM NY). PROIBIDO em Master Funded.`,
+            severity: 'CRITICAL',
+            value: nyOpeningViolations.length,
+            limit: 0,
+          });
+        }
+      }
+
+      // Check for positions during high-impact news events (basic check)
+      // This is a simplified check - in production, you'd integrate with economic calendar API
+      const newsTimeWindows = [
+        { start: '08:30', end: '09:00', description: 'NFP/CPI Release' },
+        { start: '14:00', end: '14:30', description: 'FOMC Meeting' },
+        { start: '15:30', end: '16:00', description: 'Economic Data Release' },
+      ];
+
+      const newsViolations = dayOps.filter((op) => {
+        try {
+          const abertura = parseDate(op.abertura);
+          const fechamento = parseDate(op.fechamento);
+
+          const aberturaTime = `${abertura.getHours().toString().padStart(2, '0')}:${abertura.getMinutes().toString().padStart(2, '0')}`;
+          const fechamentoTime = `${fechamento.getHours().toString().padStart(2, '0')}:${fechamento.getMinutes().toString().padStart(2, '0')}`;
+
+          return newsTimeWindows.some((window) => {
+            // Check if position was open during news window
+            return aberturaTime <= window.end && fechamentoTime >= window.start;
+          });
+        } catch (error) {
+          devLog.error('Error checking news violation:', error, op);
+          return false;
+        }
+      });
+
+      if (newsViolations.length > 0 && accountType === 'MASTER_FUNDED') {
+        violations.push({
+          code: 'NEWS_EVENTS',
+          title: 'Posições Durante Eventos Econômicos',
+          description: `Detectadas ${newsViolations.length} posições abertas durante possíveis eventos econômicos de alto impacto. ATENÇÃO: YLOS recomenda evitar operações durante notícias.`,
+          severity: 'WARNING',
+          value: newsViolations.length,
+          limit: 0,
+        });
+      }
+
       // Determine status
       let status: 'approved' | 'warning' | 'critical' = 'approved';
       if (violations.some((v) => v.severity === 'CRITICAL'))

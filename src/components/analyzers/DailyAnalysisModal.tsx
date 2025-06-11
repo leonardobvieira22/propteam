@@ -631,7 +631,14 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
                                     {violation.code === 'DAILY_LIMIT' ||
                                     violation.code === 'WINNING_DAY'
                                       ? formatCurrency(violation.value)
-                                      : `${violation.value.toFixed(1)}%`}
+                                      : violation.code === 'CONSISTENCY'
+                                        ? `${violation.value.toFixed(1)}%`
+                                        : violation.code === 'DCA_EXCESSIVE' ||
+                                            violation.code === 'OVERNIGHT' ||
+                                            violation.code === 'NY_OPENING' ||
+                                            violation.code === 'NEWS_EVENTS'
+                                          ? `${violation.value} operações`
+                                          : `${violation.value.toFixed(1)}%`}
                                   </div>
                                 </div>
                                 <div>
@@ -642,7 +649,15 @@ const DailyAnalysisModal: React.FC<DailyAnalysisProps> = ({
                                     {violation.code === 'DAILY_LIMIT' ||
                                     violation.code === 'WINNING_DAY'
                                       ? formatCurrency(violation.limit)
-                                      : `${violation.limit.toFixed(1)}%`}
+                                      : violation.code === 'CONSISTENCY'
+                                        ? `${violation.limit.toFixed(1)}%`
+                                        : violation.code === 'DCA_EXCESSIVE'
+                                          ? `${violation.limit} médios`
+                                          : violation.code === 'OVERNIGHT' ||
+                                              violation.code === 'NY_OPENING' ||
+                                              violation.code === 'NEWS_EVENTS'
+                                            ? 'Nenhuma'
+                                            : `${violation.limit.toFixed(1)}%`}
                                   </div>
                                 </div>
                               </div>
